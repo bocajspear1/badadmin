@@ -265,10 +265,21 @@ class module_base(object):
 	## Returns the author of the module
 	def author(self):
 		raise NotImplementedError 
+	
+	## Returns a description of the module
+	def description(self):
+		raise NotImplementedError 
 		
 	## Function for when the vulnerabilities are run
 	def run(self, options={}):
 		raise NotImplementedError 
+	
+	def info(self):
+		show_string = "\nName: " + self.name() + "\n\n"
+		show_string += "Version: " + self.version() + "\n"
+		show_string += "Author: " + self.author() + "\n\n"
+		show_string += "Description:\n" + self.description() + "\n\n"
+		return show_string
 	
 	## Function for when a vulnerability is tested
 	def test_run(self, vuln_obj, options={}):
@@ -318,6 +329,15 @@ class module_base(object):
 			
 		else:
 			raise ValueError("Invalid multi_vuln value")
+
+# Functions for dependency resolution
+	def has_provides(self, search):
+		for vuln in self.vulnerabilities:
+			if vuln.get_provides() == search:
+				return True
+		
+		return False
+
 
 	
 		

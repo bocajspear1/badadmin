@@ -25,3 +25,4 @@ def test_basic_module_info():
 	assert test_obj.name() == "Test Module"
 	assert test_obj.version() == "1.0.0"
 	assert test_obj.author() == "Test Author"
+	assert test_obj.description() == "Test Description"

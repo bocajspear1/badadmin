@@ -45,6 +45,8 @@ class usergroup(module_base):
 	def author(self):
 		return "Jacob Hartman" 
 
+	def description(self):
+		return "Misconfigures user and groups, such as adding new root users and setting weak passwords"
 
 	def run(self):
 		pass
@@ -58,6 +60,8 @@ class usergroup(module_base):
 		elif vuln_obj.get_name() == 'USERGROUP_FAKE_ROOT':
 			self.doc.add_doc("usergroup", 'USERGROUP_FAKE_ROOT', "Adding fake root user of " + options['user'])
 			return self.__vuln_add_root_user(options['user'], options['password'])
+		elif vuln_obj.get_name() == 'USERGROUP_WEAK_PASSWORD':
+			return self.set_password(options['user'], options['password'])
 		else:
 			print("Vulnerability does not exist or cannot be tested")	
 			
@@ -101,7 +105,7 @@ class usergroup(module_base):
 					return False
 				else:
 					pass
-					#return group_file.write_contents(result)
+					return group_file.write_contents(result)
 	
 	
 	def __vuln_add_root_user(self, user, password):

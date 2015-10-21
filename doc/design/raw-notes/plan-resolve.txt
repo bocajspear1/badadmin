@@ -1,0 +1,16 @@
+* Select first module
+* Get module vulnerabilities
+* Create list of module dependencies and dependency restrictions
+* Find modules that have the necessary provides string
+* For each module, load and:
+	* Get module vulnerabilities
+	* Create list of module dependencies and dependency restrictions
+	* Find modules that have the necessary provides string
+	* Check if module has already been passed in the current tree
+		* If so, error our, there is a a circular dependency
+	* For each module,  Check if module is already in list
+		* If so, Move module before current module
+		* Check if vulnerabilites passes any restrictions
+			* If so, continue
+			* If not, get vulnerability list again for module
+			* Check for modules that use the current module

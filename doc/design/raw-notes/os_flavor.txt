@@ -1,0 +1,11 @@
+os_flavor module is to make requesting OS type and 'flavor,' the version/distro/release, of the operating system simple and easy to manage.
+
+Enums hold OS type and flavor constants
+
+OS = Operating sytem type
+LINUX = Flavors of linux
+WINDOWS = Flavors of Windows
+
+If the OS is currently not supported, the os type is set to OS.UNSUPPORTED while all other values of the flavor object are set to None. OS.UNSUPPORTED always fails a matching test, since this leaves the system ambigious, and it is impossible to choose vulnerabilities when the system is not supported
+
+The object stores the os_type (windows, linux, bsd, etc.), the flavor (ubuntu and centos for linux, win7 and win8 for windows, etc), and the version (tuple of major, minor release for linux, service pack number for windows.

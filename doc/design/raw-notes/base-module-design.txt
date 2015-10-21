@@ -1,0 +1,41 @@
+Base module should contain:
+	* Randomness tools (for choosing vulnerailities)
+	* Functionality for declaring vulnerabilities
+	* Functionality for taking in restrictions from the resolution process. A restiction is a limitation on certain applications or versions. 
+	* File system tools
+	* Package manager and repo tools
+	* Function for creating list of vulnerabilities based on current restrictions and required applications from other modules
+	* Functions for documentation assistance
+	* Functions for running commands
+	* Functions for assisting in building (later)
+	* Functions for interfacing with other tools (later)
+	* Functions for getting system information
+	* Downloading
+	* Templates
+	* Using files stored in module, such as config files and small binaries
+	* Functions that help test the functionality of the module
+
+
+Derived functions must:
+
+import the class via:
+from ..base import module_base
+
+
+class example(module_base):
+...
+
+
+child constructors must also call parent constructor
+
+
+All modules must maintain python2 and python3 compatilibity as possible. 
+
+A module can produce only a single vulnerability, or one or more vulnerabilities (multi_vuln mode). This can be toggled by the module. If the NONE vulnerability is chosen first in multi_vuln mode, NONE is the only one returned. If chosen in any other circumstance, NONE is ignored.
+
+The list of vulnerabilities is produced by the get_vuln_list function. A copy is returned for use in dependency resolution. An internal copy is used when actually running the vulnerabilities. All functionality (the actual vulnerabilty placing code) is placed in the run() function. This is called by the main system when running through modules.
+
+Modules should also indicate what varieties of operating system they support (Linux distros, version of Windows [when that is supported]). This should be incorporated into the requiremetns when resolving dependencies
+
+
+Testing mode: In testing mode, run() nor get_vuln_list() is used. Use get_test_vuln to get a vulnerabilty by name, then pass it to test_run() with any options. The testing of the success of the operation is up to the module creator and should be done externally. Code should be built within the module so that the code tested is the same code used to run the actual vulnerabilities in normal functioning as much as possible (use functions). The difference would be known values are passed instead of possilby random ones. 

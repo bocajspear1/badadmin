@@ -1,6 +1,7 @@
 import argparse
 import os 
 import util.module_util
+import sys
 
 parser = argparse.ArgumentParser(description='Test a vulnerability in a module on the current system')
 parser.add_argument("module", nargs=1,help="Name of module")
@@ -10,7 +11,12 @@ parser.add_argument('options', nargs='+', help="Name of vulnerability to run")
 args = parser.parse_args()
 #print(args.options)
 
+if os.geteuid() != 0:
+	print ("\nYou need to be root to test a vulnerability")
+	sys.exit()
+
 mod_result = util.module_util.import_module(args.module[0])
+
 if mod_result == False:
 	print("Module '" + args.module[0] + "' does not exist")
 else:

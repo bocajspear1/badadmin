@@ -15,6 +15,8 @@ class test_module(module_base):
 	def author(self):
 		return "Test Author" 
 
+	def description(self):
+		return "Test Description"
 
 	def run(self):
 		pass
