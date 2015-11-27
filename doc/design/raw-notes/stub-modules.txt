@@ -1,0 +1,1 @@
+Stub modules are modules that don't actually exist in the module folder. These modules are usually created dynamically, and are used for testing purposes.

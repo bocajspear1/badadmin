@@ -1,0 +1,6 @@
+Versions are 2 to 4 groupings of numbers seperated by periods (.). The 2nd to third groupings may have one or more characters after the numbers.
+
+Single digits are expanded automatically to #.0
+
+Any extra data is ignored and not considered curing comparisons
+

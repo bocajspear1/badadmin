@@ -5,43 +5,68 @@ import sys
 import platform
 import copy
 from util.cross_version import Enum
-import util.version_string as version_string 
+import util.version_util as version_util
 
-__os_list = {
-	'LINUX': [
-		#'DEBIAN',
-		'CENTOS', 
+
+_os_list = {
+	'linux': [
+		'debian',
+		'centos', 
 		#'SUSE',
-		'UBUNTU', 
-		'UNSUPPORTED' 
+		'ubuntu',  
 	],
-	'WINDOWS': [
-		'WIN_7',
-		'WIN_8',
-		'WIN_8_1',
-		'WIN_SERVER_2003', 
-		'WIN_SERVER_2008',
-		'WIN_SERVER_2012',
-		'WIN_XP',
+	'windows': [
+		'win_7',
+		'win_8',
+		'win_8_1',
+		'win_server_2003', 
+		'win_server_2008',
+		'win_server_2012',
+		'win_XP',
 		'WIN_9x', 
 		#'REACTOS',
-		'UNSUPPORTED'
 	]
 	
 }
 
+def valid_os(os_type):
+	if os_type in _os_list:
+		return True
+	else:
+		return False
+		
+def valid_flavor(os_type, flavor):
+	if not valid_os(os_type):
+		return False
+	
+	if flavor in _os_list[os_type]:
+		return True
+		
+	return False
 
+# Inline functions used to make sure I don't misspell anything :)
+def validate_os(os_type):
+	if valid_os(os_type):
+		return os_type
+	else:
+		raise ValueError("Invalid os type")
 
-    
-OS = Enum(['LINUX', 'WINDOWS'])
-LINUX = Enum(['CENTOS', 'UBUNTU'])  
+def validate_flavor(os_type, flavor):
+	if not valid_os(os_type):
+		raise ValueError("Invalid os type")
+	else:
+		if valid_flavor(os_type, flavor):
+			return flavor
+		else:
+			raise ValueError("Invalid os type")
 
-
+## Object that represents a os match and is used in comparing the current OS, stored in 'os_info' to
+# a desired os, which is stored in 'os_match'
 class os_match(object):
 	
 	def __init__(self, os_type, flavor='*', version_range='*'):
 		
-		if type(os_type) == OS:
+		if valid_os(os_type):
 			self.__os_type = os_type
 		else:
 			raise ValueError("Invalid OS type")
@@ -49,29 +74,24 @@ class os_match(object):
 		
 		if flavor == '*' or flavor == "-":
 			self.__flavor = flavor
-		elif self.__os_type == OS.WINDOWS and type(flavor) == WINDOWS:
-			self.__flavor = flavor
-		elif self.__os_type == OS.LINUX and type(flavor) == LINUX:
+		elif valid_flavor(self.__os_type, flavor):
 			self.__flavor = flavor
 		else:
 			raise ValueError("Invalid OS flavor")
 			
 			
-		if version_string.is_range(version_range):
-			self.__version_range = version_range
-		else:
-			raise ValueError("Invalid OS version range")
+		self.__version = version_util.version_range(version_range)
 		
 	def flavor(self):
-		return copy.deepcopy(self.__os_flavor)
+		return copy.deepcopy(self.__flavor)
 		
 	def os_type(self):
 		return copy.deepcopy(self.__os_type)
 
 	def version_range(self):
-		return copy.deepcopy(self.__os_version)
+		return copy.deepcopy(self.__version)
 		
-
+## Object that stores OS information for the current system
 class os_info(object):
 	
 	def __init__(self):
@@ -84,32 +104,32 @@ class os_info(object):
 	def __fill(self):
 		raw_type = platform.system()
 		if raw_type == "Linux":
-			self.__os_type = OS.LINUX
+			self.__os_type = validate_os('linux')
 		elif raw_type == "Windows":
 			#self.__os_type = OS.WINDOWS
-			self.__os_type = OS.UNSUPPORTED
+			self.__os_type = None
 		else:
-			self.__os_type = OS.UNSUPPORTED
+			self.__os_type = None
 
-		if self.__os_type == OS.UNSUPPORTED:
+		if self.__os_type == None:
 			return
 			
-		if self.__os_type == OS.LINUX:
+		if self.__os_type == validate_os('linux'):
+			
 			my_dist = platform.linux_distribution()
 			
 			if 'ubuntu' in my_dist[0].lower():
-				self.__os_flavor = LINUX.UBUNTU
+				self.__os_flavor = validate_flavor('linux', 'ubuntu')
 				#print("!:" + self.__os_flavor)
 			elif 'centos' in my_dist[0].lower():
-				self.__os_flavor = LINUX.CENTOS
+				self.__os_flavor = validate_flavor('linux', 'centos')
 			else:
-				self.__os_flavor = LINUX.UNSUPPORTED
+				self.__os_flavor = None
 
-			if not self.__os_flavor == LINUX.UNSUPPORTED:
-				self.__os_version = my_dist[1]
+			if not self.__os_flavor == None:
+				self.__os_version = version_util.version(my_dist[1])
 
 	def flavor(self):
-		
 		return copy.deepcopy(self.__os_flavor)
 		
 	def os_type(self):
@@ -119,10 +139,10 @@ class os_info(object):
 		return copy.deepcopy(self.__os_version)
 
 	# Returns true if the match_obj matches our system, False if not
-	def check_match(self, match_obj):
+	def matches(self, match_obj):
 		
 		# Auto-fail if our system is unsupported
-		if self__os_type == OS.UNSUPPORTED:
+		if self.__os_type == None:
 			return False
 		
 		if not isinstance(match_obj, os_match):
@@ -141,7 +161,7 @@ class os_info(object):
 				
 			if match_obj.version_range() == "*":
 				return True
-			elif version_string.test_range(match_obj.version_range(), self.__os_version):
+			elif match_obj.version_range().in_range(self.__os_version):
 				return True
 			else:
 				return False

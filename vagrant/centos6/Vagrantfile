@@ -1,0 +1,15 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+# BadAdmin Ubuntu Vagrant 
+#
+Vagrant.configure(2) do |config|
+
+  # Use a basic Ubuntu box
+  config.vm.box = "puppetlabs/centos-6.6-64-nocm"
+
+  config.vm.synced_folder "../../", "/badadmin"
+  
+  # Shell provisioning to install python 2 and 3, as well as install nosetests
+  config.vm.provision "shell", path: "setup.sh"
+end

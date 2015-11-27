@@ -32,29 +32,33 @@ class simple_command():
 				stdin_string = bytes(stdin_string, 'UTF-8')
 		else:
 			stdin_string = None
-		
-		if PYTHON_VERSION == 3:
-			output, error = proc.communicate(stdin_string, timeout=15)
-			output = output.decode('UTF-8')
-			error = error.decode('UTF-8')
-		elif PYTHON_VERSION == 2:
-			output, error = proc.communicate(stdin_string)
-		
-		
-		if not output.strip() == "":
-			output_list = output.strip().split("\n")
-		else:
-			output_list = []
 			
-		if not error.strip() == "":
-			error_list = error.strip().split("\n")
-		else:
-			error_list = []
+		try:
+			if PYTHON_VERSION == 3:
+				output, error = proc.communicate(stdin_string, timeout=60)
+				output = output.decode('UTF-8')
+				error = error.decode('UTF-8')
+			elif PYTHON_VERSION == 2:
+				output, error = proc.communicate(stdin_string)
 		
-		if '' in output_list:
-			output_list.remove('')
 		
-		if '' in error_list:
-			error_list.remove('')
+			if not output.strip() == "":
+				output_list = output.strip().split("\n")
+			else:
+				output_list = []
+				
+			if not error.strip() == "":
+				error_list = error.strip().split("\n")
+			else:
+				error_list = []
+			
+			if '' in output_list:
+				output_list.remove('')
+			
+			if '' in error_list:
+				error_list.remove('')
+			
+			return (proc.returncode ,output_list, error_list)
+		except OSError as e:
+			return ([], ["OSError", e.message])
 		
-		return (output_list, error_list)

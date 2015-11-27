@@ -1,6 +1,7 @@
 import argparse
 import os 
 import util.module_util
+import util.resolve
 import sys
 
 parser = argparse.ArgumentParser(description='Test a vulnerability in a module on the current system')

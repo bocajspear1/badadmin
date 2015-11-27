@@ -8,6 +8,7 @@ class usergroup(module_base):
 		
 		passwd_vuln = self._new_vulnerability('USERGROUP_WEAK_PASSWORD', 'Changes the passwords of users to a weak one')
 		passwd_vuln.add_cmd_uses('passwd')
+		passwd_vuln.set_difficulty('hard')
 		
 		self._add_vulnerability(passwd_vuln)
 		
@@ -133,7 +134,7 @@ class usergroup(module_base):
 			user = ""
 		
 		set_password = self.command()
-		(output_list, error_list) = set_password.run("passwd " + user, [password , password])
+		(returncode, output_list, error_list) = set_password.run("passwd " + user, [password , password])
 		
 		if len(error_list) > 0:
 			if not 'password updated successfully' in error_list[0]:
@@ -246,7 +247,7 @@ class usergroup(module_base):
 		
 		add_command = self.command()
 		
-		(output_list, error_list) = add_command.run(command_string)
+		(returncode, output_list, error_list) = add_command.run(command_string)
 		
 		if len(error_list) > 0:
 			print(error_list)

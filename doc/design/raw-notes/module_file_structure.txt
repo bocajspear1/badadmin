@@ -1,0 +1,5 @@
+MODULE_NAME/	
+	MODULE_NAME.py
+	/templates
+	/files
+	

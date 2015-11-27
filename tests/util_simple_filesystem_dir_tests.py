@@ -5,6 +5,7 @@
 import sys
 import os
 import getpass
+import pwd
 
 from util.simple_filesystem import simple_file
 from util.simple_filesystem import simple_dir
@@ -197,6 +198,9 @@ def test_dir_recursive_chmod():
 
 def test_dir_recursive_chmod():
 	
+	uid1 = pwd.getpwuid(1).pw_name
+	uid2 = pwd.getpwuid(2).pw_name
+	
 	path = test_location + "/badadmin-r-chown"
 	
 	dirs = ['dir1' , 'dir2']
@@ -242,34 +246,34 @@ def test_dir_recursive_chmod():
 	assert ownership['uid'] == 1
 	assert ownership['gid'] == 1
 	
-	assert ownership['owner_name'] == 'daemon'
-	assert ownership['group_name'] == 'daemon'
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid1
 	
 	ownership = test_file3.get_ownership()
 	
 	assert ownership['uid'] == 1
 	assert ownership['gid'] == 1
 	
-	assert ownership['owner_name'] == 'daemon'
-	assert ownership['group_name'] == 'daemon'
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid1
 	
 	ownership = test_file2.get_ownership()
 	
 	assert ownership['uid'] == 1
 	assert ownership['gid'] == 1
 	
-	assert ownership['owner_name'] == 'daemon'
-	assert ownership['group_name'] == 'daemon'
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid1
 	
-	test_dir.recursive_chown_by_name('bin', 'bin')
+	test_dir.recursive_chown_by_name(uid2, uid2)
 	
 	ownership = test_dir.get_ownership()
 	
 	assert ownership['uid'] == 2
 	assert ownership['gid'] == 2
 	
-	assert ownership['owner_name'] == 'bin'
-	assert ownership['group_name'] == 'bin'
+	assert ownership['owner_name'] == uid2
+	assert ownership['group_name'] == uid2
 	
 	ownership = test_file3.get_ownership()
 	
@@ -277,15 +281,15 @@ def test_dir_recursive_chmod():
 	assert ownership['uid'] == 2
 	assert ownership['gid'] == 2
 	
-	assert ownership['owner_name'] == 'bin'
-	assert ownership['group_name'] == 'bin'
+	assert ownership['owner_name'] == uid2
+	assert ownership['group_name'] == uid2
 	
 	ownership = test_dir2.get_ownership()
 	
 	assert ownership['uid'] == 2
 	assert ownership['gid'] == 2
 	
-	assert ownership['owner_name'] == 'bin'
-	assert ownership['group_name'] == 'bin'
+	assert ownership['owner_name'] == uid2
+	assert ownership['group_name'] == uid2
 	
 	assert test_dir.remove() == True

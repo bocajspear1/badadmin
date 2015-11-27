@@ -357,7 +357,7 @@ class simple_dir():
 			os.mkdir(self.dir)
 			return True
 		except  OSError as e:
-			print(e.strerror)
+			#~ print(e.strerror)
 			print("Failed to create directory")
 			return False
 	

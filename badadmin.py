@@ -1,17 +1,19 @@
 import util.os_data as os_data
 import util.cross_version as cross_version
 import util.module_util as module_util
+import util.resolve as resolve
+from util.ba_random import ba_random
 import os
 import sys
-import readline
+
 
 NAME = "BadAdmin"
-VERSION = "0.1dev"
+VERSION = "0.2"
 
 def main():
 	current_system = os_data.os_info()
 	
-	if not current_system.os_type() == os_data.OS.LINUX:
+	if not current_system.os_type() == 'linux':
 		print(NAME + " can currently only be run on Linux")
 		
 	running = True
@@ -27,9 +29,10 @@ def main():
 	]
 	
 	bd_vars = {
-		"to_run": {"type": "list", "value": [], "description": ""},
-		"base64": {"type": "bool", "value": True, "description": ""},
-		"verbose": {"type": "bool", "value": False, "description": ""}
+		"to_run": {"type": "list", "value": [], "description": "Modules to be run"},
+		"base64": {"type": "bool", "value": True, "description": "Sets if module output is Base64 encoded"},
+		"verbose": {"type": "bool", "value": False, "description": "Sets if BadAdmin should be verbose"},
+		"level": {"type": "string", "value": 'any', "description": "Sets a limit to the difficulty level of modules", "limit": ['easy', 'medium', 'hard', 'any']}
 	}
 	
 	if not os.geteuid() == 0:
@@ -37,9 +40,11 @@ def main():
 		sys.exit()
 	
 	print("\n" + NAME + " " + VERSION + "\n")
+	print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 	print("WARNING: Do not run this application on a production device!") 
 	print("This application is intended to make things insecure.")
 	print("DO NOT RUN IT ON A BOX THAT HAS STUFF YOU WANT TO KEEP SAFE!")
+	print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
 	
 	while running == True:
 		input_val = get_user_input("> ").strip()
@@ -50,32 +55,61 @@ def main():
 		
 		if not command in VALID_COMMANDS and not command == "":
 			print(command + ": invalid command")
-		
 		if command == "quit" or command == "exit":
 			print("Exiting...")
 			sys.exit()
 		elif command == "module":
 			if not len(input_list) > 1:
 				print("Incomplete command")
-				print("Valid sub-commands: add, remove, info, list")
+				print("Valid sub-commands: add, remove, info, list, random")
 			elif input_list[1] == "add":
 				
 				if not len(input_list) == 3:
 					print(input_val + ": invalid command")
 				else:
 					module_name = input_list[2]
+					
 					if module_util.module_exists(module_name):
 						if not module_name in bd_vars['to_run']['value']:
 							bd_vars['to_run']['value'].append(module_name)
+							print("Module added")
 						else:
 							print("Module is already set to be run")
 						
 					else:
 						print("Module '" + module_name + "' does not exist")
+			
+			elif input_list[1] == "random":	
 				
+				rand_list = []
+				
+				while len(rand_list) == 0:
+				
+					mod_list = module_util.get_module_list()
+					
+					
+					
+					set_level = bd_vars['level']['value']
+					
+					for module in mod_list:
+						if module == "test_module":
+							continue
+						
+						mod_obj = module_util.import_module(module)
+						
+						if set_level == "any":
+							if ba_random().will_do():
+								rand_list.append(module)
+						else: 
+							if mod_obj.has_difficulty(set_level) and ba_random().will_do():
+								rand_list.append(module)
+					
+				print(rand_list)
 				
 			elif input_list[1] == "remove":
+				
 				print("remove")
+				
 			elif input_list[1] == "info":
 				
 				if not len(input_list) == 3:
@@ -90,17 +124,23 @@ def main():
 						print("Module '" + module_name + "' does not exist")
 					
 			elif input_list[1] == "list":
-				module_list = module_util.list_modules()
+				module_list = module_util.get_module_list()
 				
 				if len(module_list) > 0:
 					for item in module_list:
-						print("\t" + item)
+						if item == "test_module":
+							continue
+						if item in bd_vars['to_run']['value']:
+							print("\t+ " + item)
+						else:
+							print("\t- " + item)
 				else:
 					print("\nNo modules are installed!")
 			else:
 				print(input_val + ": invalid command")
 				
 		elif command == "run":
+			
 			if not len(bd_vars['to_run']['value']) > 0:
 				print("\nERROR: No modules have been added. Cannot run\n")
 			else:
@@ -110,30 +150,43 @@ def main():
 				
 				if answer.strip() == "yes":
 					print("Resolving module dependencies...")
-					# Resolve dependencies
-					print("Ordering modules for executing...")
+					resolver = resolve.resolver()
+					if not bd_vars['level']['value'] == 'any':
+						resolver.set_difficulty()
+					for module in bd_vars['to_run']['value']:
+						print("\tAdding " + module)
+						resolver.add_module(module)
 					
+					resolver.start_resolve()
+					
+					print("Ordering modules for executing...")
+					order_list = resolver.get_install_order()
+					print(order_list)
 					print("Executing modules...")
 					
 					print("Execution complete!")
 					
 				else:
 					print("'yes' not given. Stopping...")  
-				
+
+# show				
 		elif command == "show":
+			
 			if not len(input_list) > 1:
 				print("Incomplete command")
 				print("Valid sub-commands: vars, modules")
 			elif input_list[1] == "vars":
 				for var in bd_vars:
-					print ("* " + var + "[" + bd_vars[var]['type'] + "] = " + str(bd_vars[var]['value']))
+					print ("* " + var + "[" + bd_vars[var]['type'] + "] = " + str(bd_vars[var]['value']) + " - " + bd_vars[var]['description'])
 			elif input_list[1] == "modules":
 				print("\nModules to be run:\n")
 				for item in bd_vars['to_run']['value']:
 					print(item)
 			else:
 				print(input_val + ": invalid command")
+# set
 		elif command == "set":
+			
 			if not len(input_list) == 3:
 				print("Incomplete command")
 				print("Usage: set <variable name> <value>")
@@ -146,6 +199,9 @@ def main():
 					
 					if bd_vars[key]['type'] == "bool" and not (value == "true" or value == "True" or value == "false" or value == "False"):
 						print("Invalid value for bool type")
+						success = False
+					elif bd_vars[key]['type'] == "string" and "limit" in bd_vars[key] and not value in bd_vars[key]['limit']:
+						print("Variable " + key + " must be from the following list: " + str(bd_vars[key]['limit']) )
 						success = False
 					
 					if success == True:

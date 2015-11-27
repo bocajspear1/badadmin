@@ -5,6 +5,7 @@
 import sys
 import os
 import getpass
+import pwd
 
 from util.simple_filesystem import simple_file
 
@@ -312,6 +313,9 @@ def test_file_owner():
 
 def test_file_set_owner():
 	
+	uid1 = pwd.getpwuid(1).pw_name
+	uid2 = pwd.getpwuid(2).pw_name
+	
 	my_uid = os.getuid()
 	my_gid = os.getgid()
 	
@@ -332,16 +336,16 @@ def test_file_set_owner():
 	assert ownership['uid'] == 1
 	assert ownership['gid'] == 1
 	
-	assert ownership['owner_name'] == 'daemon'
-	assert ownership['group_name'] == 'daemon'
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid1
 	
-	test_file.set_ownership_by_name('bin', 'bin')
+	test_file.set_ownership_by_name(uid2, uid2)
 	
 	ownership = test_file.get_ownership()
 
 	
-	assert ownership['owner_name'] == 'bin'
-	assert ownership['group_name'] == 'bin'
+	assert ownership['owner_name'] == uid2
+	assert ownership['group_name'] == uid2
 	
 	assert ownership['uid'] == 2
 	assert ownership['gid'] == 2
