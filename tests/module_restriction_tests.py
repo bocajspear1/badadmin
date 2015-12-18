@@ -1,2 +1,71 @@
-def test_version_restriction():
-	assert False
+import util.module_util as module_util
+
+def test_version_restriction_ver():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_1", "Test", "restrict", "1.0.0")
+	test_obj.add_vulnerability(vuln)
+
+	assert len(test_obj.get_vulnerabilities()) == 1
+	
+	test_obj.add_version_restriction("restrict", ">=1.0")
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+
+	test_obj.add_version_restriction("restrict", "<1.0")
+
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+
+def test_version_restriction_temp_ver():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_1", "Test", "restrict", "1.0.0")
+	test_obj.add_vulnerability(vuln)
+
+	assert len(test_obj.get_vulnerabilities()) == 1
+	
+	test_obj._add_temp_version_restriction("restrict", ">=1.0")
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+
+	test_obj._add_temp_version_restriction("restrict", "<1.0")
+
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+	
+	test_obj._clear_temp_restrictions()
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+	
+def test_version_restriction_level():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_1", "Test", "restrict", "1.0.0")
+	vuln.set_difficulty("hard")
+	test_obj.add_vulnerability(vuln)
+
+	assert len(test_obj.get_vulnerabilities()) == 1
+	
+	HARD = 3
+	EASY = 1
+	
+	test_obj.set_difficulty_limit(EASY)
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+
+	test_obj.set_difficulty_limit(HARD)
+
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+
+def test_version_restriction_dep():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_1", "Test", "restrict", "1.0.0")
+	vuln.add_dependency("test", ">2.0.0a")
+	test_obj.add_vulnerability(vuln)
+
+	assert len(test_obj.get_vulnerabilities()) == 1
+	
+	test_obj.add_dependency_restriction("test", ">2.0.0")
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+

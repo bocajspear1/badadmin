@@ -1,41 +1,80 @@
 # Import the base module
 from ..base import module_base
 
+EASY_PASSWORDS = [
+'test',
+'password'
+'letmein',
+'abc123',
+'password1',
+'Password',
+'msfadmin',
+'admin',
+'administrator',
+'12345678',
+'passpass',
+'stuff',
+'password2'
+]
+
+ADMIN_USERS = [
+'admin',
+'ro0t',
+'adm1n',
+'l33t',
+'test',
+
+'toor',
+'op'
+]
+
+NORMAL_USERS = [
+'bob',
+'me',
+'tester',
+'systm',
+'rob',
+'joe',
+'pete',
+'debug'
+]
+
 class usergroup(module_base):
 	
 	def __init__(self):
 		super(usergroup, self).__init__()
 		
-		passwd_vuln = self._new_vulnerability('USERGROUP_WEAK_PASSWORD', 'Changes the passwords of users to a weak one')
+		passwd_vuln = self.new_vulnerability('USERGROUP_WEAK_PASSWORD', 'Changes the passwords of users to a weak one')
 		passwd_vuln.add_cmd_uses('passwd')
 		passwd_vuln.set_difficulty('hard')
 		
-		self._add_vulnerability(passwd_vuln)
+		self.add_vulnerability(passwd_vuln)
 		
-		extra_user = self._new_vulnerability('USERGROUP_EXTRA_USERS', 'Adds extra users that can log in')
+		extra_user = self.new_vulnerability('USERGROUP_EXTRA_USERS', 'Adds extra users that can log in')
 		extra_user.add_cmd_uses('useradd')
 		
-		self._add_vulnerability(extra_user)
+		self.add_vulnerability(extra_user)
 		
-		passwd2_vuln = self._new_vulnerability('USERGROUP_UNKNOWN_PASSWORD', 'Changes the password of users to unknown ones')
+		passwd2_vuln = self.new_vulnerability('USERGROUP_UNKNOWN_PASSWORD', 'Changes the password of users to unknown ones')
 		passwd2_vuln.add_cmd_uses('passwd')
 		
-		self._add_vulnerability(passwd2_vuln)
+		self.add_vulnerability(passwd2_vuln)
 		
-		shell_vuln = self._new_vulnerability('USERGROUP_ADD_SHELLS', 'Changes shells of users')
+		shell_vuln = self.new_vulnerability('USERGROUP_ADD_SHELLS', 'Changes shells of users')
 		
-		self._add_vulnerability(shell_vuln)
+		self.add_vulnerability(shell_vuln)
 		
 		
-		admin_grp_vuln = self._new_vulnerability('USERGROUP_ADD_ADMIN_GROUP', 'Adds a user to an administrator group')
+		admin_grp_vuln = self.new_vulnerability('USERGROUP_ADD_ADMIN_GROUP', 'Adds a user to an administrator group')
 		
-		self._add_vulnerability(admin_grp_vuln)
+		self.add_vulnerability(admin_grp_vuln)
 		
-		wheel_vuln = self._new_vulnerability('USERGROUP_FAKE_ROOT', 'Creates a user with uid 0')
+		wheel_vuln = self.new_vulnerability('USERGROUP_FAKE_ROOT', 'Creates a user with uid 0')
 		wheel_vuln.add_cmd_uses('passwd')
 		
-		self._add_vulnerability(wheel_vuln)
+		self.add_vulnerability(wheel_vuln)
 		
+		self.set_multi_vuln(True)
 
 	def name(self):
 		return "User/Group Modification Module"
@@ -50,18 +89,175 @@ class usergroup(module_base):
 		return "Misconfigures user and groups, such as adding new root users and setting weak passwords"
 
 	def run(self):
-		pass
+		
+		status = True
+		
+		shell_list = ["/bin/sh", "/bin/bash"]
+		
+		changed_users = []
+		new_users = []
+		
+		for vuln in self.get_running_vulns():
+			vuln_name = vuln.name()
+			
+			if vuln_name == 'USERGROUP_ADD_SHELLS':
+				
+				user_list = self.__get_user_list()
+				
+				change_list = []
+				
+				for user in user_list:
+					if self.random().will_do() and self.random().will_do():
+						if user_list[user][0] < 1000 and user_list[user][0] != 0:
+							change_list.append(user)
+							changed_users.append(user)
+				
+				
+				
+				
+				for user in change_list:
+					shell = self.random().array_random(shell_list)
+					result = self.__vuln_change_shells(user, shell)
+					if result == True:
+						self.doc.add_doc("USERGROUP_ADD_SHELLS", "Changed shell of user '" + user + "' to '" + shell + "'")
+					status = status and result
+				
+				return status
+				
+			elif vuln_name == 'USERGROUP_ADD_ADMIN_GROUP':
+				
+				user_list = self.__get_user_list()
+				groups = self.__get_group_list()
+				
+				admin_groups = []
+				
+				if "root" in groups:
+					admin_groups.append("root")
+					
+				if "wheel" in groups:
+					admin_groups.append("wheel")
+					
+				if "admin" in groups:
+					admin_groups.append("admin")
+				
+				for group in admin_groups:
+					times = self.random().random_number(1, 3)
+					for i in range(times):
+						user = self.random().array_random(user_list.keys())
+						result = self.__vuln_add_to_group(user, group)
+						if result == True:
+							self.doc.add_doc("USERGROUP_ADD_ADMIN_GROUP", "Added user '" + user + "' to group '" + group + "'")
+						status = status and result 
+						
+			elif vuln_name == 'USERGROUP_FAKE_ROOT':
+				
+				times = self.random().random_number(1, 3)
+				
+				modify_list = []
+				
+				for i in range(times):
+					users = self.__get_user_list().keys()
+					name = self.random().array_random(ADMIN_USERS) 
+					if not name in modify_list and not name in users:
+						modify_list.append(name)
+					
+
+				for user in modify_list:
+					password = self.random().array_random(EASY_PASSWORDS)
+					result = self.__vuln_add_root_user(user, )
+					if result == True:
+						self.doc.add_doc("USERGROUP_FAKE_ROOT", "Added user '" + user + "' as extra root user with password '" + password + "'")
+					status = status and result
+				
+			elif vuln_name == 'USERGROUP_WEAK_PASSWORD':
+				
+				if len(changed_users) > 0:
+					for user in changed_users:
+						password = self.random().array_random(EASY_PASSWORDS)
+						self.set_password(user, password)
+						self.doc.add_doc('USERGROUP_WEAK_PASSWORD', "Setting password of user " + user + " to " + password)
+				
+				
+				user_list = self.__get_user_list()
+				
+				change_list = []
+				
+				for user in user_list:
+					if not user in changed_users and not user in new_users and self.random().will_do() and self.random().will_do():
+						password = self.random().array_random(EASY_PASSWORDS)
+						result = self.set_password(user, password)
+						if result == True:
+							self.doc.add_doc('USERGROUP_WEAK_PASSWORD', "Setting password of user " + user + " to " + password)
+							status = status and result
+				
+			elif vuln_name == 'USERGROUP_EXTRA_USERS':
+				
+				times = self.random().random_number(1, 5)
+				
+				available = []
+				
+				
+				for name in NORMAL_USERS:
+					if not name in self.__get_user_list():
+						available.append(name)
+				
+				
+						
+				for i in range(times):
+					
+					if len(available) == 0:
+						print("No users can be added")
+						continue
+					
+					new_user = self.random().array_random(available)
+					if new_user in available:
+						available.remove(new_user)
+						
+					
+						
+					password = ""
+					if self.random().will_do():
+						password = self.random().array_random(EASY_PASSWORDS)
+					else:
+						password = self.random().random_string(6, 15)
+						
+						
+					shell = self.random().array_random(shell_list)
+					new_users.append(new_user)
+					result = self.add_user(new_user, shell=shell)
+					status = status and result 
+					result = self.set_password(new_user, password)
+					if result == True:
+						self.doc.add_doc('USERGROUP_EXTRA_USERS', "Adding user " + new_user + " with the password '" + password + "' and shell " + shell)
+					status = status and result 
+					
+			elif vuln_name == "USERGROUP_UNKNOWN_PASSWORD":
+				
+				user_list = self.__get_user_list()
+				
+				for user in user_list:
+					if not user in changed_users and not user in new_users and self.random().will_do() and self.random().will_do():
+						password = self.random().random_string(7, 13)
+						result = self.set_password(user, password)
+						if result == True:
+							self.doc.add_doc('USERGROUP_UNKNOWN_PASSWORD', "Setting password of user " + user + " to " + password)
+						status = status and result
+			else:
+				print("Vulnerability does not exist or cannot be run")
+				status = False
+				
+		return status
 		
 	## Function for when a vulnerability is tested
 	def test_run(self, vuln_obj, options={}):
-		if vuln_obj.get_name() == 'USERGROUP_ADD_SHELLS':
+		if vuln_obj.name() == 'USERGROUP_ADD_SHELLS':
 			return self.__vuln_change_shells(options['user'], options['shell'])
-		elif vuln_obj.get_name() == 'USERGROUP_ADD_ADMIN_GROUP':
+		elif vuln_obj.name() == 'USERGROUP_ADD_ADMIN_GROUP':
 			return self.__vuln_add_to_group(options['user'], 'root')
-		elif vuln_obj.get_name() == 'USERGROUP_FAKE_ROOT':
+		elif vuln_obj.name() == 'USERGROUP_FAKE_ROOT':
 			self.doc.add_doc("usergroup", 'USERGROUP_FAKE_ROOT', "Adding fake root user of " + options['user'])
 			return self.__vuln_add_root_user(options['user'], options['password'])
-		elif vuln_obj.get_name() == 'USERGROUP_WEAK_PASSWORD':
+		elif vuln_obj.name() == 'USERGROUP_WEAK_PASSWORD':
 			return self.set_password(options['user'], options['password'])
 		else:
 			print("Vulnerability does not exist or cannot be tested")	
@@ -72,12 +268,13 @@ class usergroup(module_base):
 		if result == False:
 			return False
 		else:
-			print(result)
-			passwd_file.write_contents(result)
+			result = passwd_file.write_contents(result)
+			
+			return result
 	
 	def __vuln_add_to_group(self, user, group):
 		
-		check_list = self.get_group_list()
+		check_list = self.__get_group_list()
 		print(check_list)
 		
 		if not group in check_list:
@@ -105,9 +302,10 @@ class usergroup(module_base):
 				if result == False:
 					return False
 				else:
-					pass
-					return group_file.write_contents(result)
-	
+					result = group_file.write_contents(result)
+					
+
+					return result 
 	
 	def __vuln_add_root_user(self, user, password):
 		
@@ -116,7 +314,7 @@ class usergroup(module_base):
 			return False
 		
 		
-		if user in self.get_user_list():
+		if user in self.__get_user_list():
 			print("User aleady exists")
 			return False
 		
@@ -126,7 +324,10 @@ class usergroup(module_base):
 			print("Error adding user")
 			return False
 
-		return self.set_password(user, password)
+		result = self.set_password(user, password)
+			
+		
+		return result
 		
 		
 	def set_password(self, user, password):
@@ -145,7 +346,7 @@ class usergroup(module_base):
 				return True
 		return True
 		
-	def get_group_list(self):
+	def __get_group_list(self):
 		group_file = self.file("/etc/group")
 		grp_file_content = group_file.get_contents()
 		
@@ -168,7 +369,7 @@ class usergroup(module_base):
 		
 		return group_list
 			
-	def get_user_list(self):
+	def __get_user_list(self):
 		passwd_file = self.file("/etc/passwd")
 		
 		passwd_content = passwd_file.get_contents()
@@ -190,15 +391,19 @@ class usergroup(module_base):
 		return user_list
 	
 	
-	def add_user(self, username, uid="", gid="" ,homedir="", makehomedir=True, groups=[], unique=True, system=False, makeusergroup=True, shell=""):
+	def add_user(self, username, uid=None, gid=None ,homedir="", makehomedir=True, groups=[], unique=True, system=False, makeusergroup=True, shell=""):
 		command_string = "useradd"
 		
-		if isinstance( uid, int ) or uid.isdigit():
+		if uid == None:
+			pass
+		elif not uid == None and (isinstance( uid, int ) or uid.isdigit()):
 			command_string += " -u " + str(uid)
 		else:
 			raise ValueError("UID must be an integer")
 		
-		if isinstance( gid, int ) or gid.isdigit():
+		if gid == None:
+			pass
+		elif isinstance( gid, int ) or gid.isdigit():
 			command_string += " -g " + str(gid)
 		elif gid == "":
 			pass

@@ -1,3 +1,8 @@
+## @package badadmin
+#
+# User interface class and operation. This is the main module for BadAdmin
+#
+
 import util.os_data as os_data
 import util.cross_version as cross_version
 import util.module_util as module_util
@@ -5,20 +10,13 @@ import util.resolve as resolve
 from util.ba_random import ba_random
 import os
 import sys
-
+import traceback
 
 NAME = "BadAdmin"
-VERSION = "0.2"
+VERSION = "0.3"
 
-def main():
-	current_system = os_data.os_info()
-	
-	if not current_system.os_type() == 'linux':
-		print(NAME + " can currently only be run on Linux")
-		
-	running = True
-	
-	VALID_COMMANDS = [
+
+VALID_COMMANDS = [
 		"exit",
 		"quit",
 		"help",
@@ -27,59 +25,122 @@ def main():
 		"show",
 		"set"
 	]
+
+## @class badadmin
+# 
+# User interface class
+#
+class badadmin():
 	
-	bd_vars = {
-		"to_run": {"type": "list", "value": [], "description": "Modules to be run"},
-		"base64": {"type": "bool", "value": True, "description": "Sets if module output is Base64 encoded"},
-		"verbose": {"type": "bool", "value": False, "description": "Sets if BadAdmin should be verbose"},
-		"level": {"type": "string", "value": 'any', "description": "Sets a limit to the difficulty level of modules", "limit": ['easy', 'medium', 'hard', 'any']}
-	}
-	
-	if not os.geteuid() == 0:
-		print ("\nYou need to be root to run " + NAME)
-		sys.exit()
-	
-	print("\n" + NAME + " " + VERSION + "\n")
-	print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-	print("WARNING: Do not run this application on a production device!") 
-	print("This application is intended to make things insecure.")
-	print("DO NOT RUN IT ON A BOX THAT HAS STUFF YOU WANT TO KEEP SAFE!")
-	print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")
-	
-	while running == True:
-		input_val = get_user_input("> ").strip()
+	## Initialize the interface
+	def __init__(self):
+		current_system = os_data.os_info()
 		
-		input_list = input_val.split(" ")
+		if not current_system.os_type() == 'linux':
+			print(NAME + " can currently only be run on Linux")
 		
-		command = input_list[0]
-		
-		if not command in VALID_COMMANDS and not command == "":
-			print(command + ": invalid command")
-		if command == "quit" or command == "exit":
-			print("Exiting...")
+		if not os.geteuid() == 0:
+			print ("\nYou need to be root to run " + NAME)
 			sys.exit()
-		elif command == "module":
-			if not len(input_list) > 1:
-				print("Incomplete command")
-				print("Valid sub-commands: add, remove, info, list, random")
-			elif input_list[1] == "add":
+		
+		self.__running = True
+		
+		self.__vars = {
+			"to_run": {"type": "list", "value": [], "description": "Modules to be run"},
+			"base64": {"type": "bool", "value": True, "description": "Sets if module output is Base64 encoded"},
+			"verbose": {"type": "bool", "value": False, "description": "Sets if BadAdmin should be verbose"},
+			"force": {"type": "map", "value": {}, "description": "Maps a module to vulnerabilities that will be forced to be run"},
+			"level": {"type": "string", "value": 'any', "description": "Sets a limit to the difficulty level of modules", "limit": ['easy', 'medium', 'hard', 'any']}
+		}
+		
+	def __warning(self):
+		print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		print("WARNING: Do not run this application on a production device!") 
+		print("This application is intended to make things insecure.")
+		print("DO NOT RUN IT ON A BOX THAT HAS STUFF YOU WANT TO KEEP SAFE!")
+		print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")	
+	
+	def __show(self, options):
+		if not len(options) == 1:
+			print("Incomplete command")
+			print("Valid sub-commands: vars, modules")
+		else:
+			subcommand = options[0]
+			
+			if subcommand == "vars":
+				for var in self.__vars:
+					print ("* " + var + "[" + self.__vars[var]['type'] + "] = " + str(self.__vars[var]['value']) + " - " + self.__vars[var]['description'])
+			elif subcommand == "modules":
+				print("\nModules to be run:\n")
+				for item in self.__vars['to_run']['value']:
+					print(item)
+			else:
+				print("show: invalid subcommand + '" + subcommand + "'")
+	
+	def __set(self, options):
+		if not len(options) == 2:
+			print("set: Incomplete command")
+			print("Usage: set <variable name> <value>")
+		else:
+			key = options[0]
+			value = options[1]
+			
+			if key in self.__vars:
+				success = True
 				
-				if not len(input_list) == 3:
-					print(input_val + ": invalid command")
+				var_type = self.__vars[key]['type']
+				
+				if var_type == "bool":
+					if value == "true" or value == "True" or value == "false" or value == "False":
+						
+						if value == "true" or value == "True":
+							self.__vars[key]['value'] = True
+						elif value == "false" or value == "False":
+							self.__vars[key]['value'] = False
+						else:
+							print("Invalid!")
+							
+					else:
+						print("Invalid value to type bool")
+						
+				elif var_type == "string":
+					if "limit" in self.__vars[key] and not value in self.__vars[key]['limit']:
+						print("Variable " + key + " must be from the following list: " + str(self.__vars[key]['limit']) )
+					else:
+						self.__vars[key]['value'] = value
+				
+			else:
+				print("Variable '" + key + "' is invalid")
+			
+	
+	def __help(self, options):
+		pass
+		
+	def __module(self, options):
+		
+		if len(options) == 0:
+			print("Incomplete command")
+			print("Valid sub-commands: add, remove, info, list, random")
+		else:
+			subcommand = options[0]
+			del options[0]
+			
+			if subcommand == "add":
+				
+				if not len(options) == 1:
+					print("module add: No module name")
 				else:
-					module_name = input_list[2]
+					module_name = options[0]
 					
 					if module_util.module_exists(module_name):
-						if not module_name in bd_vars['to_run']['value']:
-							bd_vars['to_run']['value'].append(module_name)
+						if not module_name in self.__vars['to_run']['value']:
+							self.__vars['to_run']['value'].append(module_name)
 							print("Module added")
 						else:
 							print("Module is already set to be run")
-						
 					else:
 						print("Module '" + module_name + "' does not exist")
-			
-			elif input_list[1] == "random":	
+			elif subcommand == "random":	
 				
 				rand_list = []
 				
@@ -87,11 +148,10 @@ def main():
 				
 					mod_list = module_util.get_module_list()
 					
-					
-					
-					set_level = bd_vars['level']['value']
+					set_level = self.__vars['level']['value']
 					
 					for module in mod_list:
+						# Skip the test module
 						if module == "test_module":
 							continue
 						
@@ -104,122 +164,179 @@ def main():
 							if mod_obj.has_difficulty(set_level) and ba_random().will_do():
 								rand_list.append(module)
 					
-				print(rand_list)
-				
-			elif input_list[1] == "remove":
-				
-				print("remove")
-				
-			elif input_list[1] == "info":
-				
-				if not len(input_list) == 3:
-					print(input_val + ": invalid command")
+				print(rand_list)			
+			elif subcommand == "remove":
+				if not len(options) == 1:
+					print("module add: No module set")
 				else:
-					module_name = input_list[2]
+					module_name = options[0]
+					
+					if module_util.module_exists(module_name):
+						if module_name in self.__vars['to_run']['value']:
+							self.__vars['to_run']['value'].remove(module_name)
+							print("Module removed")
+						else:
+							print("Module is not set to run")
+					else:
+						print("Module '" + module_name + "' does not exist")			
+			elif subcommand == "info":
+				
+				if not len(options) == 1:
+					print("module info: No module name")
+				else:
+					module_name = options[0]
+					
 					if module_util.module_exists(module_name):
 						tmp_module = module_util.import_module(module_name)
 						print(tmp_module.info())
 						
+						print("Vulnerabilities:")
+						for vuln in tmp_module.vulnerability_list():
+							print("    " + vuln)
+							
 					else:
-						print("Module '" + module_name + "' does not exist")
-					
-			elif input_list[1] == "list":
+						print("Module '" + module_name + "' does not exist")	
+			elif subcommand == "list":
 				module_list = module_util.get_module_list()
 				
 				if len(module_list) > 0:
 					for item in module_list:
 						if item == "test_module":
 							continue
-						if item in bd_vars['to_run']['value']:
+						if item in self.__vars['to_run']['value']:
 							print("\t+ " + item)
 						else:
 							print("\t- " + item)
 				else:
-					print("\nNo modules are installed!")
-			else:
-				print(input_val + ": invalid command")
-				
-		elif command == "run":
-			
-			if not len(bd_vars['to_run']['value']) > 0:
-				print("\nERROR: No modules have been added. Cannot run\n")
-			else:
-				print ("\nAre you sure you want to run the modules? The changes made by " + NAME + " cannot be reversed!\nType 'yes' if you want to continue\n")
-				
-				answer = get_user_input("? ")
-				
-				if answer.strip() == "yes":
-					print("Resolving module dependencies...")
-					resolver = resolve.resolver()
-					if not bd_vars['level']['value'] == 'any':
-						resolver.set_difficulty()
-					for module in bd_vars['to_run']['value']:
-						print("\tAdding " + module)
-						resolver.add_module(module)
-					
-					resolver.start_resolve()
-					
-					print("Ordering modules for executing...")
-					order_list = resolver.get_install_order()
-					print(order_list)
-					print("Executing modules...")
-					
-					print("Execution complete!")
-					
+					print("\nNo modules are set to run!")
+			elif subcommand == "force":
+				if not len(options) == 2:
+					print("Enter a module and vulnerability to force")
 				else:
-					print("'yes' not given. Stopping...")  
-
-# show				
-		elif command == "show":
-			
-			if not len(input_list) > 1:
-				print("Incomplete command")
-				print("Valid sub-commands: vars, modules")
-			elif input_list[1] == "vars":
-				for var in bd_vars:
-					print ("* " + var + "[" + bd_vars[var]['type'] + "] = " + str(bd_vars[var]['value']) + " - " + bd_vars[var]['description'])
-			elif input_list[1] == "modules":
-				print("\nModules to be run:\n")
-				for item in bd_vars['to_run']['value']:
-					print(item)
-			else:
-				print(input_val + ": invalid command")
-# set
-		elif command == "set":
-			
-			if not len(input_list) == 3:
-				print("Incomplete command")
-				print("Usage: set <variable name> <value>")
-			else:
-				if input_list[1] in bd_vars:
+					module = options[0]
+					vuln = options[1]
 					
-					key = input_list[1]
-					value = input_list[2]
-					success = True
-					
-					if bd_vars[key]['type'] == "bool" and not (value == "true" or value == "True" or value == "false" or value == "False"):
-						print("Invalid value for bool type")
-						success = False
-					elif bd_vars[key]['type'] == "string" and "limit" in bd_vars[key] and not value in bd_vars[key]['limit']:
-						print("Variable " + key + " must be from the following list: " + str(bd_vars[key]['limit']) )
-						success = False
-					
-					if success == True:
-						if bd_vars[key]['type'] == "bool" and (value == "true" or value == "True"):
-							bd_vars[key]['value'] = True
-						elif bd_vars[key]['type'] == "bool" and (value == "false" or value == "False"):
-							bd_vars[key]['value'] = False
+					if module_util.module_exists(module):
+						if vuln in module_util.import_module(module).vulnerability_list():
+							if not module in self.__vars['force']['value']:
+								self.__vars['force']['value'][module] = []
+							
+							if not vuln in self.__vars['force']['value'][module]:
+								self.__vars['force']['value'][module].append(vuln)
+							else:
+								print("That vulnerability is already being forced")
 						else:
-							bd_vars[key]['value'] = value
+							print("Module '" + module + "' does not have the vulnerability '" + vuln + "'")
 					else:
-						pass
+						print("Module '" + module + "' does not exist")
+					
+			else:
+				print("module: invalid subcommand '" + subcommand + "'")
+			
+	def __run(self, options):
+		if not len(self.__vars['to_run']['value']) > 0:
+			print("\nERROR: No modules have been added. Cannot run\n")
+		else:
+			self.__warning()
+			print ("\n\nAre you sure you want to run the modules? The changes made by " + NAME + " cannot be reversed!\nType 'yes' if you want to continue\n")
+			
+			answer = self.__user_input("? ")
+			
+			if answer == "yes":
+				print("Resolving module dependencies...")
+				resolver = resolve.resolver()
+				if not self.__vars['level']['value'] == 'any':
+					resolver.set_difficulty()
+				for module in self.__vars['to_run']['value']:
+					if self.__vars['verbose']['value'] == True:
+						print("\tAdding " + module)
+					if module in self.__vars['force']['value']:
+						resolver.add_module(module, forced=self.__vars['force']['value'][module])
+					else:
+						resolver.add_module(module)
+
+				resolver.start_resolve()
+				
+				print("Ordering modules for executing...")
+				order_list = resolver.get_install_modules(resolver.get_install_order())
+				
+				for module in order_list:
+					if self.__vars['verbose']['value'] == True:
+						print("\tRunning " + module.name())
+				
+				print("Executing modules...")
+				
+				for module in order_list:
+					if self.__vars['verbose']['value'] == True:
+						print("\tExecuting " + module.name())
+						for vuln in module.get_running_vulns():
+							print("\t  |-" + vuln.name())
+					result = None
+					result = module.run()
+					if result == False:
+						print("Module " + module.name() + " failed! Halting.")
+						return
+				
+				print("Execution complete!")
+				for module in order_list:
+					print(module.doc.get_all_docs(output='clear'))
+					
+			else:
+				print("'yes' not given. Stopping...")  
+		
+	def __user_input(self, prompt):
+		try:
+			if cross_version.get_python_version() == 3:
+				input_val = input(prompt)
+			elif cross_version.get_python_version() == 2:
+				input_val = raw_input(prompt)
+				
+			return input_val.strip()
+		except KeyboardInterrupt:
+			return "exit"
+			
+	## Start the interface
+	def start(self):
+		print("\n" + NAME + " " + VERSION + "\n")
+		self.__warning()
+		
+		while self.__running == True:
+			try:
+				user_input = self.__user_input("> ")
+		
+				input_list = user_input.split(" ")
+				
+				command = input_list[0]
+				del input_list[0]
+				
+				if command == "":
+					pass
+				elif not command in VALID_COMMANDS :
+					print(command + ": invalid command")
+				elif command == "quit" or command == "exit":
+					print("Exiting...")
+					sys.exit()
+				elif command == "module":
+					self.__module(input_list)
+				elif command == "run":
+					self.__run(input_list)
+				elif command == "show":
+					self.__show(input_list)
+				elif command == "set":
+					self.__set(input_list)
+				elif command == "help":
+					for command in VALID_COMMANDS:
+						print("\t" + command)
 				else:
-					print("Invalid variable '" + input_list[1] + "'") 
-def get_user_input(prompt):
-	if cross_version.get_python_version() == 3:
-		input_val = input(prompt)
-	elif cross_version.get_python_version() == 2:
-		input_val = raw_input(prompt)
-	return input_val
-	
-main()
+					print("Invalid command - " + command)
+			except Exception as e:
+				print("ERROR - Caught an error!!")
+				print(e)
+				traceback.print_exc()
+## Main function of BadAdmin
+def main():				
+	bd = badadmin()
+	bd.start()
+
+main()		
+

@@ -1,3 +1,6 @@
+# WARNING!
+# This module is used for unit testing and should not be used as an example!
+#
 import sys
 # Import the base module
 from ..base import module_base
@@ -11,9 +14,11 @@ import simple_filesystem
 class test_module(module_base):
 	
 	def __init__(self):
-		super(test_module, self).__init__()
 		self.__name = "Test Module"
 		self.__class = "test_module"
+		super(test_module, self).__init__()
+		
+		
 		
 	def name(self):
 		return self.__name

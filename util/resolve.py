@@ -1,3 +1,7 @@
+## @package util.resolve
+#
+# Module that provides dependency resolution and prepares modules for operation
+#
 import util.cross_version as cross_version
 import util.module_util as module_util
 import modules.base as base
@@ -6,6 +10,10 @@ import copy
 
 MAX_DEPTH = 25
 
+## @class resolver
+#
+# Main class for dependency resolution
+#
 class resolver(object):
 	
 	def __init__(self, debug=False):
@@ -39,7 +47,7 @@ class resolver(object):
 		else:
 			raise ValueError("Invalid difficulty level")
 			
-	def add_module(self, module):
+	def add_module(self, module, forced=[]):
 		
 		if issubclass(module.__class__, base.module_base):
 			module_name = module.get_class_name()
@@ -54,6 +62,9 @@ class resolver(object):
 				print("Adding module " + module_name)
 			
 			self.__insert_module(module_name, module_util.import_module(module_name))
+			
+			if len(forced) > 0:
+				self.__name_map[module_name].set_forced(forced)
 			
 		else:
 			return
@@ -147,7 +158,7 @@ class resolver(object):
 				module_obj.add_version_restriction(ver_restrict.provides_string(), ver_restrict.version_range())
 		
 		for dep_restrict in dep_restrictions:
-			if module_obj.has_provides(dep_restrict.get_provides()):
+			if module_obj.has_provides(dep_restrict.provides()):
 				module_obj.add_version_restriction(dep_restrict.provides_string(), dep_restrict.version_range())	
 		
 		
@@ -185,7 +196,7 @@ class resolver(object):
 			for vuln in vuln_list:
 				
 				if self.__debug:
-					print(front + "Processing " + module_obj.get_class_name() + "." + vuln.get_name())
+					print(front + "Processing " + module_obj.get_class_name() + "." + vuln.name())
 
 				dep_list = vuln.get_dependencies()
 				if len(dep_list) == 0:
@@ -225,7 +236,7 @@ class resolver(object):
 								# First create list of dependency restrictions that are for this dependency
 								for dep_restriction in vuln.get_dependency_restrictions():
 									if dep_restriction.provides_string() == self.__provides_map[dep.provides_string()]:
-										provides_module.add_temp_dependency_restriction(dep_restriction)
+										provides_module._add_temp_dependency_restriction(dep_restriction)
 								
 								# Check if with the new restrictions the module doesn't need to be changed
 								if provides_module.still_valid():
@@ -431,22 +442,21 @@ class resolver(object):
 				insert_pos = -1
 				found_pos = False
 				for i in range(len(temp_list)):
-					current = module_map[install_order[i]]
+					current = module_map[temp_list[i]]
 					
-					if parent_used.isdisjoint(current['modified']) and found_pos == False:
-						insert_pos = i
-					elif not parent_used.isdisjoint(current['modified']):
+					if not parent_used.isdisjoint(current['modified']) and found_pos == False:
 						insert_pos = i
 						found_pos = True
 					
-					if not current['modified'].isdisjoint(r_item['used']) and found_pos == True:
+					if not parent_modified.isdisjoint(current['used']) and found_pos == True:
 						print("Used/Modified collision")
 						return [], None, None
+
 					
 					if i == len(temp_list) - 1 and found_pos == False:
 						insert_pos = len(temp_list)
 			
-				temp_list.insert(insert_pos, parent)
+				temp_list.insert(insert_pos, module_name)
 			
 			if self.__debug:
 				print(front + "(After)Ordering: " + module_name)
@@ -479,6 +489,14 @@ class resolver(object):
 		
 		return ordered_list
 		
+	def get_install_modules(self, module_list):
+		
+		return_list = []
+		
+		for module_name in module_list:
+			return_list.append(self.__name_map[module_name])	
+		
+		return return_list
 		
 	def __get_child_lists(self, parent):
 		child_list = self.__get_children(parent)

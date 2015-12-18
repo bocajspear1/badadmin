@@ -1,8 +1,13 @@
+## @package util.simple_command
+#
+# Provides a simplified interface for running commands
+#
 import util.cross_version as cross_version
 import subprocess
 
-## Provides simplified access to running commands on the system.
+## @class simple_command 
 #
+# Provides simplified access to running commands on the system.
 #
 class simple_command():
 	

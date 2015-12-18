@@ -1,3 +1,7 @@
+## @package modules.base
+#
+# Provides basic classes for BadAdmin modules
+#
 import os
 import random
 import util.cross_version as cross_version
@@ -73,17 +77,14 @@ class version_restriction(dependency_base):
 		if isinstance(version_string, version_util.version):
 			version_obj = version_string
 		elif cross_version.isstring(provides_string):
-			print(version_string)
 			version_obj = version_util.version(version_string)
 		else:
 			raise ValueError("Provides string is not a string or version object")
 
-		
-		
-		if not self.version_range().in_range(version_obj):
-			return False
+		if self.version_range().in_range(version_obj):
+			return True
 			
-		return True
+		return False
 
 ## Represents a restriction on the versions a vulnerabilities depends can provide. 
 # This will become the dependencies version restrictions
@@ -93,15 +94,18 @@ class dependency_restriction(dependency_base):
 		if not cross_version.isstring(provides_string):
 			raise ValueError("Provides string is not a string")
 		
-		range_obj = version_util.version_range(version_range)
+		if not isinstance(version_range, version_util.version_range):
+			range_obj = version_util.version_range(version_range)
+		else:
+			range_obj = version_range
 		
-		if not self.__provides_string == provides_string:
+		if not self.provides_string() == provides_string:
 			return False
 		
-		if not range_obj.intersects(self.__version_range):
-			return False
+		if range_obj.intersects(self.version_range()):
+			return True
 			
-		return True
+		return False
 
 ## Represents a single vulnerability
 #
@@ -142,28 +146,28 @@ class vulnerability(object):
 	# 
 	# @returns {string}
 	#
-	def get_name(self):
+	def name(self):
 		return self.__name
 
 	## Returns the description of the vulnerability
 	# 
 	# @returns {string}
 	#
-	def get_description(self):
+	def description(self):
 		return self.__description
 	
 	## Returns what the vulnerability provides
 	# 
 	# @returns {string}
 	#
-	def get_provides(self):
+	def provides(self):
 		return self.__provides
 	
 	## Returns the version of what the vulnerabilty provides
 	# 
 	# @returns {string} - The version
 	#
-	def get_version(self):
+	def version(self):
 		return copy.deepcopy(self.__version)
 	
 	## Compares the given input string to the current vulnerability's
@@ -303,13 +307,12 @@ class vulnerability(object):
 		
 class doc():
 	
-	def __init__(self):
+	def __init__(self, module):
 		self.__doc_list = []
-	
-	def add_doc(self, module, vuln, description):
+		self.__module = module
 		
-		if not cross_version.isstring(module):
-			raise ValueError("Module value is not a string")
+	def add_doc(self, vuln, description):
+		
 		
 		if not cross_version.isstring(vuln):
 			raise ValueError("Vulnerabilty value is not a string")
@@ -317,18 +320,32 @@ class doc():
 		if not cross_version.isstring(description):
 			raise ValueError("Description value is not a string")
 			
-		self.__doc_list.append({"module": module, "vulnerability": vuln, "description": description})
+		self.__doc_list.append({"module": self.__module, "vulnerability": vuln, "description": description})
 
-	def encrypt_doc(self, key):
+	def __encrypt_doc(self, key):
 		pass
+	
+	def get_all_docs(self, output="base64"):
+		if output == 'clear':
+			return self.__doc_to_string()
+		elif output == 'base64':
+			return self.__base64_doc()
+		else:
+			raise ValueError("Invalid output type")
 		
-	def base64_doc(self):
+	def __base64_doc(self):
 		doc_string = self.__doc_to_string()
 		
 		if doc_string.strip() == "":
 			return ""
 		else:
-			output = base64.standard_b64encode(doc_string)
+			if cross_version.get_python_version() == 2:
+				output = base64.standard_b64encode(doc_string)
+			elif cross_version.get_python_version() == 3:
+				output = base64.standard_b64encode(bytes(doc_string,'UTF-8'))
+				output = output.decode('utf-8')
+			else:
+				assert False
 			return output
 		
 	def __doc_to_string(self):
@@ -361,12 +378,14 @@ class module_base(object):
 		self.__tmp_version_restrictions = []
 		self.__tmp_dependency_restrictions = []
 		
-		self.doc = doc()
+		self.__forced = []
+		
+		self.doc = doc(self.name())
 		self.__difficulty = None
 # Start abstract functions
 	# Can't use Python abc functionality due to Python2/3 compatability
 	
-	## ABSTRACT: Returns the name of the module
+	## ABSTRACT: Returns the detailed name of the module
 	def name(self):
 		raise NotImplementedError 
 	
@@ -386,13 +405,16 @@ class module_base(object):
 	def run(self, options={}):
 		raise NotImplementedError 
 	
-	## This function is called with a vulnerabilty object and values in the options for testing the functionality of module
+	## ABSTRACT: This function is called with a vulnerabilty object and values in the options for testing the functionality of module
 	def test_run(self, vuln_obj, options={}):
 		raise NotImplementedError 
 	
 # End abstract functions
 
 	## Function for producing a blurb about the module
+	#
+	# @returns string - Short description of the module
+	#
 	def info(self):
 		show_string = "\nName: " + self.name() + "\n\n"
 		show_string += "Version: " + self.version() + "\n"
@@ -400,26 +422,46 @@ class module_base(object):
 		show_string += "Description:\n" + self.description() + "\n\n"
 		return show_string
 
-
 	## Allows access to create a new vulnerability object
 	#
-	def _new_vulnerability(self, name, description, provides='', provides_version=''):
+	# @param string name - Name of the new vulnerability. Commonly in all upper case _'s in place of spaces
+	# @param string description - A short description of the vulnerability
+	# @param string provides - A string that defines what service the vulnerability will provide. See documentation on "provides strings." Defaults to ''
+	# @param string provides_version - Version of application indicated in the provides string
+	# @returns vulnerability - New instance of a vulnerability object
+	#
+	def new_vulnerability(self, name, description, provides='', provides_version=''):
 		return vulnerability(name, description, provides, provides_version)
-		
-	def _add_vulnerability(self, vulnerability_obj):
-
+	
+	## Inserts a vulnerability object to the list of vulnerabilities provided by the module
+	#
+	# @param vulnerability vulnerability_obj - The vulnerability object to insert
+	#
+	def add_vulnerability(self, vulnerability_obj):
 		if isinstance(vulnerability_obj, vulnerability):
-			self.__vulnerability_list[vulnerability_obj.get_name()] = vulnerability_obj
+			self.__vulnerability_list[vulnerability_obj.name()] = vulnerability_obj
 		else:
 			raise ValueError("Object is not an instance of vulnerability")
 	
-	## Clears all vulnerabilities in the modules. Use only for testing 
-	def _clear_vulnerabilities(self):
-		self.__vulnerability_list = []
+	## TESTING: Clears all vulnerabilities in the modules. Use only for testing 
+	def clear_vulnerabilities(self):
+		self.__vulnerability_list = {}
+	
+	## Get the vulnerabilities that will run. Call only after running get_vulnerabilities
+	#
+	# @returns vulnerability[] - List of vulnerabilities that are in the running list
+	#
+	def get_running_vulns(self):
+		return copy.deepcopy(self.__running_vulns)
 	
 	## Return a vulnerability object by name. Used in module testing
+	#
+	# If the module does not exist, throws a ValueError
+	#
+	# @param string vuln_name - Name of the vulnerabilty to return
+	# @returns vulnerabililty - The vulnerability instance that corresponds to the given name
+	#
 	def get_vulnerability_object(self, vuln_name):
-		
 		if not cross_version.isstring(vuln_name):
 			raise ValueError("Name is not string")
 		
@@ -428,6 +470,10 @@ class module_base(object):
 		else:
 			return False
 	
+	## Set if the module will return only one or one or more vulnerabilities
+	#
+	# @param Boolean - True = returns one or more vulnerabilities, False = returns only one vulnerability
+	#
 	def set_multi_vuln(self, value):
 		if value == True or value == False:
 			self.__multi_vuln = value
@@ -435,13 +481,23 @@ class module_base(object):
 			raise ValueError("Invalid multi_vuln value")
 
 # Functions for dependency resolution
+
+	## Checks if the module contains a vulnerability that has the given provides string
+	#
+	# @param string search - Search value
+	# @returns Boolean - True if the there is a vulnerabilty with the provides string, False if not
+	#
 	def has_provides(self, search):
 		for vuln in self.__vulnerability_list:
-			if self.__vulnerability_list[vuln].get_provides() == search:
+			if self.__vulnerability_list[vuln].provides() == search:
 				return True
-		
 		return False
 
+	## Checks if the module contains a vulnerability that has the given difficulty level or lower
+	#
+	# @param object search - Search value
+	# @returns Boolean - True if the there is a vulnerabilty with the difficulty level, False if not
+	#
 	def has_difficulty(self, search):
 		
 		if cross_version.isstring(search):
@@ -451,12 +507,22 @@ class module_base(object):
 			raise ValueError("Invalid difficulty")
 		
 		for vuln in self.__vulnerability_list:
-			if self.__vulnerability_list[vuln].get_difficulty() == search or self.__vulnerability_list[vuln].get_difficulty() == None:
+			if self.__vulnerability_list[vuln].get_difficulty() <= search or self.__vulnerability_list[vuln].get_difficulty() == None:
 				return True
 		
 		return False
 
+
+	## Returns the list of all vulnerabilities stored in the module
+	#
+	# @returns Map of vulnerability names to vulnerability object
+	def vulnerability_list(self):
+		return copy.deepcopy(self.__vulnerability_list)
+		
 	## Generates a list of vulnerabilities that fit within current restrictions
+	#
+	# @returns vulnerability[] - List of vulnerability objects
+	#
 	def __restricted_list(self):
 		
 		if len(self.__vulnerability_list) == 0:
@@ -476,64 +542,113 @@ class module_base(object):
 			
 			# Restrict by version restrictions
 			for ver_restrict in self.__version_restrictions:
-				if not ver_restrict.version_pass(vuln.get_provides(), vuln.get_version()):
+				if not ver_restrict.version_pass(vuln.provides(), vuln.version()):
 					valid = False
 			
 			# Restrict by dependency restrictions
 			for dep_restrict in self.__dependency_restrictions:
 				for dep in vuln.get_dependencies():
 					if dep_restrict.provides_string() == dep.provides_string():
-						if not dep_restrict.range_pass(dep.provides_string(), dep.version_range()):
+						if dep_restrict.range_pass(dep.provides_string(), dep.version_range()):
 							valid = False
 			
 			
 			# Restrict by version restrictions (Temporary entries)
 			for ver_restrict in self.__tmp_version_restrictions:
-				if not ver_restrict.version_pass(vuln.get_provides(), vuln.get_version()):
+				if not ver_restrict.version_pass(vuln.provides(), vuln.version()):
 					valid = False
 			
 			# Restrict by dependency restrictions (Temporary entries)
 			for dep_restrict in self.__tmp_dependency_restrictions:
 				for dep in vuln.get_dependencies():
 					if dep_restrict.provides_string() == dep.provides_string():
-						if not dep_restrict.range_pass(dep.provides_string(), dep.version_range()):
+						if dep_restrict.range_pass(dep.provides_string(), dep.version_range()):
 							valid = False
 			
 			if vuln.check_os_support() == False:
 				valid = False
 			
 			if valid == True:
-				valid_list.append(vuln)
-				
-		return copy.deepcopy(valid_list)
+				valid_list.append(copy.deepcopy(vuln))
 		
-	## Generates a list of vulnerabilities that the module has selected for running based on current restrictions
-	def generate_vulnerabilities(self):
+		return valid_list
+		
+	# Generates a list of vulnerabilities that the module has selected for running based on current restrictions
+	def __generate_vulnerabilities(self):
+		
 		valid_vulns = self.__restricted_list()
-			
+		return_list = []
 		rand_gen = self.random()
 		
-		return_list = []
+		doing_none = False
+		none_loc = -1 
+		
+		# Detect NONE vulnerability
+		for i in range(len(valid_vulns)):
+			if valid_vulns[i].name() == "NONE":
+				none_loc = i
 		
 		if len(valid_vulns) == 0:
 			return []
-		elif not self.__multi_vuln:
-			vuln = rand_gen.array_random(valid_vulns)
-			return_list.append(copy.deepcopy(vuln))
 		else:
-			for vuln in valid_vulns:
-				if rand_gen.will_do():
-					return_list.append(copy.deepcopy(vuln))
-	
+			# First check if well will remove the NONE vuln or only use NONE
+			if none_loc != -1:
+				if len(valid_vulns) == 1:
+					return [valid_vulns[none_loc]]
+				elif rand_gen.will_do() and rand_gen.will_do():
+					return [valid_vulns[none_loc]]
+				else:
+					del valid_vulns[none_loc]
+			
+			if len(self.__forced) > 0:
+				if self.__multi_vuln == False:
+					for vuln in valid_vulns:
+						if vuln.name() == self.__forced[0]:
+							return [vuln]
+				elif self.__multi_vuln == True:
+					# If there are forced vulns, ensure they are inserted
+					for forced in self.__forced:
+						valid = False
+						for vuln in valid_vulns:
+							if vuln.name() == forced:
+								valid = True
+								return_list.append(vuln)
+								
+						if valid == False:
+							return []
+					
+					# Possibly add extra vulnerabilities
+					for vuln in valid_vulns:
+						if not vuln.name() in self.__forced:
+							if rand_gen.will_do():
+								return_list.append(vuln)
+					
+			elif len(self.__forced) == 0: 	
+				if self.__multi_vuln == True:
+					while len(return_list) == 0:
+						for vuln in valid_vulns:
+							if rand_gen.will_do():
+								return_list.append(vuln)
+				elif self.__multi_vuln == False:
+					vuln = rand_gen.array_random(valid_vulns)
+					return_list.append(vuln)
+			else:
+				return_list = []
+
 		return return_list
 	
-	def get_vulnerabilities(self):
-		
-		if len(self.__running_vulns) == 0:
-			self.__running_vulns = self.generate_vulnerabilities()
+	## Returns a random list of vulnerabilities from the module that fit within current restrictions
+	#
+	# @returns vulnerability[] - List of vulnerability objects
+	#
+	def get_vulnerabilities(self, force=False):
+		if len(self.__running_vulns) == 0 or force == True:
+			self.__running_vulns = self.__generate_vulnerabilities()
 			
 		return copy.deepcopy(self.__running_vulns)
 	
+	## Sets the limit on the difficulty of vulnerabilities that can be returned
+	#
 	def set_difficulty_limit(self, limit):
 		if not cross_version.isinteger(limit):
 			raise ValueError("Difficulty limit must be integer format")
@@ -543,8 +658,12 @@ class module_base(object):
 		else:
 			self.__difficulty = limit 
 	
+	
+	def _clear_temp_restrictions(self):
+		self.__tmp_dependency_restrictions = []
+		self.__tmp_version_restrictions = []
 		
-	def add_temp_version_restrictions(self, provides_string, version_range):
+	def _add_temp_version_restriction(self, provides_string, version_range):
 		if not cross_version.isstring(provides_string):
 			raise ValueError("Provides string must be a string")
 			
@@ -556,7 +675,7 @@ class module_base(object):
 	
 	
 	## Restrict the use of certain dependencies temporarily (used in dependency resolution)
-	def add_temp_dependency_restriction(self, provides_string, version_range):
+	def _add_temp_dependency_restriction(self, provides_string, version_range):
 		
 		if not cross_version.isstring(provides_string):
 			raise ValueError("Provides string must be a string")
@@ -566,7 +685,7 @@ class module_base(object):
 			if restriction_item.version_range() == version_range and restriction_item.provides_string() == provides_string:
 				return
 		
-		self.__tmp_dependency_restrictions.append( restriction(provides_string, version_range) )
+		self.__tmp_dependency_restrictions.append( dependency_restriction(provides_string, version_range) )
 		
 	## Restrict what version range can be returned	
 	def add_version_restriction(self, provides_string, version_range):
@@ -596,7 +715,7 @@ class module_base(object):
 		#~ self.__commands_modified_restrictions = []
 
 		
-		self.__dependency_restrictions.append( restriction(provides_string, version_range) )
+		self.__dependency_restrictions.append( dependency_restriction(provides_string, version_range) )
 	
 	def get_dependency_restrictions(self):
 		return copy.deepcopy(self.__dependency_restrictions)
@@ -607,6 +726,22 @@ class module_base(object):
 	def add_command_modified_restrictions(self, command_modified):
 		self.commands_modified_restrictions.append(command_modified)
 
+	## Set vulnerabilities that must be returned
+	#
+	# @param string[] forced_list - List of vulnerability names
+	#
+	def set_forced(self, forced_list):
+		for item in forced_list:
+			if item in self.__vulnerability_list:
+				self.__forced.append(item)
+
+		if self.__multi_vuln == False:
+			self.__forced = [self.random().array_random(self.__forced)]
+			
+	## Returns the name of the current class. Used in dependency resolution
+	#
+	# @returns string - The name of the current class. Changes on inheritance
+	#
 	def get_class_name(self):
 		return self.__class__.__name__
 
@@ -617,7 +752,11 @@ class module_base(object):
 
 	def os_info(self):
 		return os_data.os_info()
-
+		
+	## Returns an instance of ba_random
+	#
+	# @returns Instance of ba_random
+	#
 	def random(self):
 		return random_class()
 		

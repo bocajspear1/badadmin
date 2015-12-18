@@ -27,12 +27,12 @@ def generate_modules(config):
 		
 		for vuln in item['vulns']:
 			
-			new_vuln = new_module._new_vulnerability(vuln['name'], vuln['desc'], vuln['provides'], vuln['version'])
+			new_vuln = new_module.new_vulnerability(vuln['name'], vuln['desc'], vuln['provides'], vuln['version'])
 			
 			for dep in vuln['deps']:
 				new_vuln.add_dependency(dep['provides'], dep['range'])
 								
-			new_module._add_vulnerability(new_vuln)
+			new_module.add_vulnerability(new_vuln)
 		
 		module_util.set_stub_module(item['class_name'], new_module)
 		added_stub_modules.append(item['class_name'])
@@ -55,9 +55,9 @@ def test_resolve_simple():
 	
 	mod_1 = module_util.import_module("test_module")
 	
-	vuln1 = mod_1._new_vulnerability("VULN_1_A", "Test Vuln A", "A", "1.0.0")
+	vuln1 = mod_1.new_vulnerability("VULN_1_A", "Test Vuln A", "A", "1.0.0")
 	vuln1.add_dependency("B", ">0.1")
-	mod_1._add_vulnerability(vuln1)
+	mod_1.add_vulnerability(vuln1)
 	mod_1.override_class_name("mod_1")
 	mod_1.set_name("Mod_1")
 	assert mod_1.get_class_name() == "mod_1"
@@ -66,8 +66,8 @@ def test_resolve_simple():
 	
 	
 	mod_2 = module_util.import_module("test_module")
-	vuln2 = mod_2._new_vulnerability("VULN_2_A", "Test Vuln B", "B", "1.0.0")
-	mod_2._add_vulnerability(vuln2)
+	vuln2 = mod_2.new_vulnerability("VULN_2_A", "Test Vuln B", "B", "1.0.0")
+	mod_2.add_vulnerability(vuln2)
 	mod_2.override_class_name("mod_2")
 	mod_2.set_name("Mod_2")
 	
@@ -174,6 +174,7 @@ def test_resolve_3_layer_2():
 	assert resolving.start_resolve() == True
 	
 	assert resolving.get_install_order() == ['mod_3', 'mod_2', 'mod_1']
+	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
 	
 	resolving = resolve.resolver()
 	resolving.add_module("mod_1")
@@ -182,6 +183,7 @@ def test_resolve_3_layer_2():
 	assert resolving.start_resolve() == True
 
 	assert resolving.get_install_order() == ['mod_3','mod_2', 'mod_1']
+	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
 	
 	remove_stubs()
 
@@ -370,7 +372,7 @@ def test_resolve_3_layer_2():
 	assert resolving.start_resolve() == True
 	
 	assert resolving.get_install_order() == ['mod_3', 'mod_2', 'mod_1']
-	
+	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
 	resolving = resolve.resolver()
 	resolving.add_module("mod_1")
 	resolving.add_module("mod_3")
@@ -378,5 +380,5 @@ def test_resolve_3_layer_2():
 	assert resolving.start_resolve() == True
 
 	assert resolving.get_install_order() == ['mod_3','mod_2', 'mod_1']
-	
+	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
 	remove_stubs()

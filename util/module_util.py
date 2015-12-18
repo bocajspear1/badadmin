@@ -1,11 +1,24 @@
-#import importlib
+## @package util.module_util
+# 
+# Python module for importing, listing and manipulating BadAdmin modules
+#
+# Also manages stub modules. Stub modules are instances of module classes
+# that do not actually exist as files, or override existing modules. 
+# These are usually used for testing.
+#
 import os
 import util.cross_version
 import modules.base as base
 import copy 
 
+## Maps a name to a stub module
 stub_map = {}
 
+## Imports a module given by name
+#
+# @param string module_name - The name of the module
+# @returns False or module object
+#
 def import_module(module_name):
 	
 	if module_exists(module_name):
@@ -21,6 +34,11 @@ def import_module(module_name):
 	else:
 		return False
 
+## Checks if a module exists and all files are properly
+#
+# @param string module_name - The name of the module
+# @returns Boolean
+#
 def module_exists(module_name):
 	if not util.cross_version.isstring(module_name):
 		return False
@@ -32,6 +50,13 @@ def module_exists(module_name):
 	else:
 		return True
 
+## Returns a list of known modules
+#
+# Modules are stored in the modules/ directory in the root BadAdmin directory
+# Also includes stub modules
+#
+# @returns string[]
+#
 def get_module_list():
 	dir_list = os.listdir("./modules/")
 	
@@ -47,6 +72,13 @@ def get_module_list():
 	
 	return ret_list
 
+## Set a stub module to respond for a given module name
+#
+# This can override existing modules
+#
+# @param string module_name - Name the stub module will respond for
+# @param object module_object - Object (subclass of module_base) that will act as the module
+#
 def set_stub_module(module_name, module_object):
 	if module_exists(module_name):
 		print("Overridding " + module_name)
@@ -55,10 +87,18 @@ def set_stub_module(module_name, module_object):
 		raise ValueError("Stub module object must be a subclass of module_base")
 		
 	stub_map[module_name] = module_object
-	
+
+## Removes a stub module
+#
+# @param string module_name - Name of the stub module that will be removed
+#	
 def remove_stub_module(module_name):
 	if module_name in stub_map:
 		del stub_map[module_name]
 
+## Returns a copy of the stub mappings
+#
+# @returns dict: Key = module name, Value = module object
+#
 def get_stubs():
 	return copy.deepcopy(stub_map)

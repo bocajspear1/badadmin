@@ -1,3 +1,7 @@
+## @package util.simple_filesystem
+#
+# Provides simplified access to accessing and modifiying files on the system
+#
 import shutil
 import os
 import util.cross_version 
@@ -5,9 +9,7 @@ import pwd
 import grp
 import re
 
-## Provides simplified access to accessing and modifiying files on the system
-#
-#
+
 class simple_file():
 	
 	## Constructor

@@ -1,8 +1,24 @@
+## @package util.version_util
+#
+# Simplified manipulation of versions and version ranges.
+#
+# A version is defined as n.nx[[.nx].nx], where n is one or more numbers, and x is one or more characters. It can have 2 to 4 . seperated sections. 
+# Single integers have '.0' appended to them
+#
 import util.cross_version as cross_version
 import copy
 import re
 
+## @class version
+#
+# Represents a version of an application
+# 
+#
 class version(object):
+	
+	## Create a version object
+	#
+	# @param string input_string - Version in string format
 	def __init__(self, input_string):
 		
 		if not cross_version.isstring(input_string):
@@ -43,56 +59,73 @@ class version(object):
 			
 		self.__v_tuple = tuple(final_version_list)
 	
-		
+	## Returns the major version number	(Major.Minor.Other)
+	#
+	# @returns int - The major version number
 	def major(self):
 		return self.__v_tuple[0]
-		
+	
+	## Returns the minor version number	(Major.Minor.Other)
+	#
+	# @returns int - The minor version number	
 	def minor(self):
 		return self.__v_tuple[1]
-		
+	
+	## Returns a copy of the tuple that stores the version information
+	#
+	# @returns int - The minor version number	
 	def get_tuple(self):
 		return copy.deepcopy(self.__v_tuple)
 	
+	# Ensures during a comparison, the tuples are of the same size
 	def __normalize(self, other_tuple):
 		
 		other_len = len(other_tuple)
 		my_len = len(self.__v_tuple)
-		
+
 		if my_len > other_len:
-			diff = my_len - other_len
-			other_tuple += (0,) * diff
-			
+			diff = int((my_len - other_len) / 2)
+			other_tuple += (0, '') * diff
+		
 		elif other_len > my_len:
-			diff = other_len - my_len 
-			self.__v_tuple += (0,) * diff
+			diff = int((other_len - my_len) / 2)
+			self.__v_tuple += (0, '') * diff
 		
 		return other_tuple
-		
+
+## @cond HIDDEN
+	
+	## Less than (<) comaprison	
 	def __lt__(self, other):
 		if not isinstance(other, version):
 			other = version(other)
-		
+
 		other_tuple = self.__normalize(other.get_tuple())
 		return self.__v_tuple < other_tuple
-	
+		
+	## Less than or equal to (<=) comaprison	
 	def __le__(self, other):
 		if not isinstance(other, version):
 			other = version(other)
 		other_tuple = self.__normalize(other.get_tuple())
 		return self.__v_tuple <= other_tuple
-		
+	
+	## Greater than (>) comaprison	
 	def __gt__(self, other):
 		if not isinstance(other, version):
 			other = version(other)
 		other_tuple = self.__normalize(other.get_tuple())
 		return self.__v_tuple > other_tuple
 	
+	## Greater than or equal to (>=) comaprison	
 	def __ge__(self, other):
 		if not isinstance(other, version):
 			other = version(other)
 		other_tuple = self.__normalize(other.get_tuple())
+		
 		return self.__v_tuple >= other_tuple
-	
+		
+	## Equal to (==) comaprison	
 	def __eq__(self, other):
 		if other == None:
 			return False
@@ -101,15 +134,26 @@ class version(object):
 			other = version(other)
 		other_tuple = self.__normalize(other.get_tuple())
 		return self.__v_tuple == other_tuple
-		
+	
+	## Not equal to (!=) comaprison	
 	def __ne__(self, other):
 		if not isinstance(other, version):
 			other = version(other)
 		other_tuple = self.__normalize(other.get_tuple())
 		return self.__v_tuple != other_tuple
 
+## @endcond
+
+## @class version_range
+#
+# Represents a version range
+# 
+#
 class version_range(object):
 	
+	## Create a version object
+	#
+	# @param string version_range_string - Version range in string format
 	def __init__(self, version_range_string):
 		if not cross_version.isstring(version_range_string):
 			raise ValueError("Invalid value for range")	
@@ -130,9 +174,20 @@ class version_range(object):
 		else:
 			raise ValueError("Invalid range")	
 	
+	## Get the original string
+	#
+	# @returns string - Original string
 	def get_string(self):
 		return self.__string
-			
+	
+	
+	## Compares a version object to the range to see if the value in the
+	# version object falls within the range
+	# 
+	# @param version check - Version object to check 
+	#
+	# @returns Boolean
+	#
 	def in_range(self, check):
 		if not isinstance(check, version):
 			check = version(check)
@@ -154,12 +209,27 @@ class version_range(object):
 		else:
 			raise ValueError("Invalid direction")
 	
+	## Returns just the version stored in the range
+	# 
+	# @returns Boolean
+	#
 	def extract_version(self):
 		return copy.deepcopy(self.__version)
 	
+	## Returns just the direction(<,>,==, etc.) stored in the range
+	# 
+	# @returns Boolean
+	#
 	def extract_direction(self):
 		return self.__range_direction
 	
+	## Compares another version range to the current range to see if they
+	# will at any point intersect
+	#
+	# @param version_range other - Version range object to check 
+	#
+	# @returns Boolean
+	#
 	def intersects(self, other):
 		other_version = other.extract_version()
 		
@@ -172,7 +242,8 @@ class version_range(object):
 			return True
 		else:
 			return False
-	
+## @cond HIDDEN
+
 	def __eq__(self, other):
 		
 		if other == None:
@@ -183,6 +254,8 @@ class version_range(object):
 
 		
 		return other.extract_direction() == self.extract_direction() and other.extract_version() == self.extract_version()
+
+## @endcond
 		
 def is_range(value):
 	if not cross_version.isstring(value):

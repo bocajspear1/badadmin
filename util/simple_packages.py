@@ -1,3 +1,7 @@
+## @package util.simple_packages
+#
+# Simplified interactions with the system package manager
+#
 import util.cross_version as cross_version
 import util.version_util as version_util
 import util.simple_command as simple_command

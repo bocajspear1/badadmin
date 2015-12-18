@@ -1,16 +1,27 @@
 ## @package util.cross_version
-# Functions for functionality between Python 2 and Python 3
+#
+# Cross-version functions
+#
+# Since BadAdmin attempts to run across both Python 2 and 3, some similar functions that 
+# would be different the two version are provided here
+#
 import sys
 import copy
 
 
+## 
+# Returns the major version of the running Python
+#
+# @returns Integer - Value of major Python version
+#
 def get_python_version():
 	return sys.version_info[0]
 
 ## 
 # Cross-version test to see if value is a string
 #
-# @param string string - Value to test if string
+# @param object string - Value to test if it is a string
+# @returns Boolean
 #
 def isstring(string):
 	
@@ -23,6 +34,12 @@ def isstring(string):
 	else:
 		print("Invalid python version")
 
+## 
+# Cross-version test to see if value is an integer (no decimal)
+#
+# @param object value - Value to test if it is an integer
+# @returns Boolean
+#
 def isinteger(value):
 	
 	python_version = get_python_version()
