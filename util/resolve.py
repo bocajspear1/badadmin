@@ -209,7 +209,7 @@ class resolver(object):
 						if dep.provides_string() not in self.__provides_map:
 							dep_module = self.__load_provides(dep.provides_string())
 							
-							if dep_module == False:
+							if dep_module == None:
 								self.__add_faulting_module("PS:" +  dep.provides_string(), "Could not load module for " + dep.provides_string())
 								return False
 							
@@ -276,7 +276,7 @@ class resolver(object):
 										
 										select_list = self.__parent_map[provides_module.get_class_name()] + [module_obj.get_class_name()]
 										
-										selection = ba_random.array_random(select_list)
+										selection = ba_random().array_random(select_list)
 										self.__name_map[selection].negate_selections()
 										self.__restarting = True
 										
@@ -307,7 +307,7 @@ class resolver(object):
 		for child in temp_parent_map:
 			if parent in temp_parent_map[child]:
 				self.__parent_map[child].remove(parent)
-				self.__remove_child_tree(self, child)		
+				self.__remove_child_tree(child)		
 				
 	def __add_faulting_module(self, module, description):
 		if not module in self.__faulting_modules:
@@ -359,8 +359,8 @@ class resolver(object):
 		
 		selected_module = module_util.import_module(selected_module_name)
 		
-		if selected_module == False:
-			return False
+		if selected_module == None:
+			return None
 		
 		if self.__debug:
 			print("Loaded module " + selected_module.get_class_name() + " to provide " + provides_string)
@@ -498,58 +498,58 @@ class resolver(object):
 		
 		return return_list
 		
-	def __get_child_lists(self, parent):
-		child_list = self.__get_children(parent)
+	#~ def __get_child_lists(self, parent):
+		#~ child_list = self.__get_children(parent)
 		
-		parent_obj = self.__name_map[parent]
-		parent_used = []
-		parent_modified = []
+		#~ parent_obj = self.__name_map[parent]
+		#~ parent_used = []
+		#~ parent_modified = []
 		
-		for vuln in self.__vuln_map[parent]:
-			parent_used += vuln.get_cmd_uses()
-			parent_modified += vuln.get_cmd_modifies()
+		#~ for vuln in self.__vuln_map[parent]:
+			#~ parent_used += vuln.get_cmd_uses()
+			#~ parent_modified += vuln.get_cmd_modifies()
 			
-		parent_used = set(parent_used)
-		parent_modified = set(parent_modified)
+		#~ parent_used = set(parent_used)
+		#~ parent_modified = set(parent_modified)
 		
 		
-		child_map = {}
-		child_list = []
+		#~ child_map = {}
+		#~ child_list = []
 		
-		for child in child_list:
-			ordered_list, modified_cmds, used_cmds = self.__get_child_lists(child)
-			parent_modified.union(modified_cmds)
-			parent_used.union(used_cmds)
-			child_map[child] = {"list": ordered_list, "modified": modified_cmds, "used": used_cmds}
-			if len(return_list) == 0:
-				return_list.append(child)
-			else:
+		#~ for child in child_list:
+			#~ ordered_list, modified_cmds, used_cmds = self.__get_child_lists(child)
+			#~ parent_modified.union(modified_cmds)
+			#~ parent_used.union(used_cmds)
+			#~ child_map[child] = {"list": ordered_list, "modified": modified_cmds, "used": used_cmds}
+			#~ if len(return_list) == 0:
+				#~ return_list.append(child)
+			#~ else:
 				
-				insert_pos = -1
+				#~ insert_pos = -1
 				
-				for i in range(len(return_list)):
-					r_item = child_map[return_list[i]]
-					current = child_map[child]
+				#~ for i in range(len(return_list)):
+					#~ r_item = child_map[return_list[i]]
+					#~ current = child_map[child]
 					
-					if current['used'].isdisjoint(r_item['modified']) and insert_pos == -1:
-						insert_pos = i
+					#~ if current['used'].isdisjoint(r_item['modified']) and insert_pos == -1:
+						#~ insert_pos = i
 					
-					if not current['modified'].isdisjoint(r_item['used']):
-						print("Used/Modified collision")
-						return [], None, None
+					#~ if not current['modified'].isdisjoint(r_item['used']):
+						#~ print("Used/Modified collision")
+						#~ return [], None, None
 					
-					if i == len(return_list) - 1:
-						insert_pos = len(return_list)
+					#~ if i == len(return_list) - 1:
+						#~ insert_pos = len(return_list)
 					
 					
 								
-				if insert_pos == -1:
-					print("Could not insert into install order")
-					return [], None, None
-				else:
-					return_list.insert(insert_pos, child)
+				#~ if insert_pos == -1:
+					#~ print("Could not insert into install order")
+					#~ return [], None, None
+				#~ else:
+					#~ return_list.insert(insert_pos, child)
 					
-		child_set = set(parent).union(set(child_list))
+		#~ child_set = set(parent).union(set(child_list))
 			
-		return child_set, parent_modified, parent_used
+		#~ return child_set, parent_modified, parent_used
 				

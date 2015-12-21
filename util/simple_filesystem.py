@@ -298,7 +298,7 @@ class simple_file():
 	def get_ownership(self):
 		stat_result = self.get_stat()
 		
-		if not stat_result == False:
+		if not stat_result == None:
 			file_uid = stat_result.st_uid
 			file_gid = stat_result.st_gid
 			
@@ -320,7 +320,7 @@ class simple_file():
 			return stat_result
 		except:
 			print("Failed to get stat for file")
-			return False
+			return None
 			
 ## Provides simplified access to using and modifing directories
 #	

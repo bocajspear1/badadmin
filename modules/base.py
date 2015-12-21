@@ -373,10 +373,12 @@ class module_base(object):
 		
 		self.__version_restrictions = []
 		self.__dependency_restrictions = []
-		self.__commands_modified_restrictions = []
 		
 		self.__tmp_version_restrictions = []
 		self.__tmp_dependency_restrictions = []
+		
+		self.__commands_used_restrictions = []
+		self.__commands_modified_restrictions = []
 		
 		self.__forced = []
 		
@@ -721,10 +723,10 @@ class module_base(object):
 		return copy.deepcopy(self.__dependency_restrictions)
 	
 	def add_command_used_restrictions(self, command_used):
-		self.commands_used_restrictions.append(command_used)
+		self.__commands_used_restrictions.append(command_used)
 	
 	def add_command_modified_restrictions(self, command_modified):
-		self.commands_modified_restrictions.append(command_modified)
+		self.__commands_modified_restrictions.append(command_modified)
 
 	## Set vulnerabilities that must be returned
 	#

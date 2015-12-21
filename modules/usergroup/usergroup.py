@@ -2,19 +2,19 @@
 from ..base import module_base
 
 EASY_PASSWORDS = [
-'test',
-'password'
-'letmein',
-'abc123',
-'password1',
-'Password',
-'msfadmin',
-'admin',
-'administrator',
-'12345678',
-'passpass',
-'stuff',
-'password2'
+	'test',
+	'password',
+	'letmein',
+	'abc123',
+	'password1',
+	'Password',
+	'msfadmin',
+	'admin',
+	'administrator',
+	'12345678',
+	'passpass',
+	'stuff',
+	'password2'
 ]
 
 ADMIN_USERS = [
@@ -23,7 +23,6 @@ ADMIN_USERS = [
 'adm1n',
 'l33t',
 'test',
-
 'toor',
 'op'
 ]
@@ -143,7 +142,7 @@ class usergroup(module_base):
 				for group in admin_groups:
 					times = self.random().random_number(1, 3)
 					for i in range(times):
-						user = self.random().array_random(user_list.keys())
+						user = self.random().array_random(list(user_list.keys()))
 						result = self.__vuln_add_to_group(user, group)
 						if result == True:
 							self.doc.add_doc("USERGROUP_ADD_ADMIN_GROUP", "Added user '" + user + "' to group '" + group + "'")
@@ -156,7 +155,7 @@ class usergroup(module_base):
 				modify_list = []
 				
 				for i in range(times):
-					users = self.__get_user_list().keys()
+					users = list(self.__get_user_list().keys())
 					name = self.random().array_random(ADMIN_USERS) 
 					if not name in modify_list and not name in users:
 						modify_list.append(name)
@@ -164,7 +163,7 @@ class usergroup(module_base):
 
 				for user in modify_list:
 					password = self.random().array_random(EASY_PASSWORDS)
-					result = self.__vuln_add_root_user(user, )
+					result = self.__vuln_add_root_user(user, password)
 					if result == True:
 						self.doc.add_doc("USERGROUP_FAKE_ROOT", "Added user '" + user + "' as extra root user with password '" + password + "'")
 					status = status and result
@@ -255,7 +254,6 @@ class usergroup(module_base):
 		elif vuln_obj.name() == 'USERGROUP_ADD_ADMIN_GROUP':
 			return self.__vuln_add_to_group(options['user'], 'root')
 		elif vuln_obj.name() == 'USERGROUP_FAKE_ROOT':
-			self.doc.add_doc("usergroup", 'USERGROUP_FAKE_ROOT', "Adding fake root user of " + options['user'])
 			return self.__vuln_add_root_user(options['user'], options['password'])
 		elif vuln_obj.name() == 'USERGROUP_WEAK_PASSWORD':
 			return self.set_password(options['user'], options['password'])
@@ -275,7 +273,6 @@ class usergroup(module_base):
 	def __vuln_add_to_group(self, user, group):
 		
 		check_list = self.__get_group_list()
-		print(check_list)
 		
 		if not group in check_list:
 			print("Group does not exist")
@@ -326,7 +323,6 @@ class usergroup(module_base):
 
 		result = self.set_password(user, password)
 			
-		
 		return result
 		
 		

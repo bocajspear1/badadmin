@@ -17,7 +17,7 @@ stub_map = {}
 ## Imports a module given by name
 #
 # @param string module_name - The name of the module
-# @returns False or module object
+# @returns None or module object
 #
 def import_module(module_name):
 	
@@ -32,7 +32,7 @@ def import_module(module_name):
 
 			return module_class()
 	else:
-		return False
+		return None
 
 ## Checks if a module exists and all files are properly
 #

@@ -51,7 +51,28 @@ def isinteger(value):
 	else:
 		print("Invalid python version")
 	
+## 
+# Cross-version test to see if value is a string with an integer (no decimal), or an integer
+#
+# @param object value - Value to test
+# @returns Boolean
+#
+def isnumeric(value):
+	python_version = get_python_version()
 	
+	if isinteger(value):
+		return True
+	
+	if python_version == 3:
+		try:
+			return value.isnumeric()
+		except AttributeError:
+			return False
+	elif python_version == 2:
+		value = unicode(value)
+		return value.isnumeric()
+	else:
+		print("Invalid python version")
 
 class Enum(frozenset):
 	def __getattr__(self, name):

@@ -12,8 +12,8 @@ import os
 import sys
 import traceback
 
-NAME = "BadAdmin"
-VERSION = "0.3"
+NAME = "BadAdmin Framework"
+VERSION = "0.4"
 
 
 VALID_COMMANDS = [
@@ -23,7 +23,8 @@ VALID_COMMANDS = [
 		"module",
 		"run",
 		"show",
-		"set"
+		"set",
+		"clear"
 	]
 
 ## @class badadmin
@@ -54,11 +55,11 @@ class badadmin():
 		}
 		
 	def __warning(self):
-		print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-		print("WARNING: Do not run this application on a production device!") 
-		print("This application is intended to make things insecure.")
-		print("DO NOT RUN IT ON A BOX THAT HAS STUFF YOU WANT TO KEEP SAFE!")
-		print ("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")	
+		print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+		print("! WARNING: Do not run this application on a production device!          !") 
+		print("! This application is intended to make things INSECURE                  !")
+		print("! DO NOT RUN IT ON A BOX THAT HAS STUFF YOU WANT TO KEEP SAFE!          !")
+		print("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n")	
 	
 	def __show(self, options):
 		if not len(options) == 1:
@@ -69,7 +70,7 @@ class badadmin():
 			
 			if subcommand == "vars":
 				for var in self.__vars:
-					print ("* " + var + "[" + self.__vars[var]['type'] + "] = " + str(self.__vars[var]['value']) + " - " + self.__vars[var]['description'])
+					print ("  + " + var + "[" + self.__vars[var]['type'] + "] = " + str(self.__vars[var]['value']) + " - " + self.__vars[var]['description'])
 			elif subcommand == "modules":
 				print("\nModules to be run:\n")
 				for item in self.__vars['to_run']['value']:
@@ -120,7 +121,7 @@ class badadmin():
 		
 		if len(options) == 0:
 			print("Incomplete command")
-			print("Valid sub-commands: add, remove, info, list, random")
+			print("Valid sub-commands: add, remove, info, list, random, force")
 		else:
 			subcommand = options[0]
 			del options[0]
@@ -157,12 +158,16 @@ class badadmin():
 						
 						mod_obj = module_util.import_module(module)
 						
-						if set_level == "any":
-							if ba_random().will_do():
-								rand_list.append(module)
-						else: 
-							if mod_obj.has_difficulty(set_level) and ba_random().will_do():
-								rand_list.append(module)
+						if mod_obj:
+							if set_level == "any":
+								if ba_random().will_do():
+									rand_list.append(module)
+							else: 
+								if mod_obj.has_difficulty(set_level) and ba_random().will_do():
+									rand_list.append(module)
+						else:
+							print("Could not import module "+ module)
+						
 					
 				print(rand_list)			
 			elif subcommand == "remove":
@@ -246,7 +251,7 @@ class badadmin():
 				print("Resolving module dependencies...")
 				resolver = resolve.resolver()
 				if not self.__vars['level']['value'] == 'any':
-					resolver.set_difficulty()
+					resolver.set_difficulty(self.__vars['level']['value'])
 				for module in self.__vars['to_run']['value']:
 					if self.__vars['verbose']['value'] == True:
 						print("\tAdding " + module)
@@ -286,6 +291,7 @@ class badadmin():
 		
 	def __user_input(self, prompt):
 		try:
+			input_val = ""
 			if cross_version.get_python_version() == 3:
 				input_val = input(prompt)
 			elif cross_version.get_python_version() == 2:
@@ -297,12 +303,20 @@ class badadmin():
 			
 	## Start the interface
 	def start(self):
+		print("""
+______           _  ___      _           _       
+| ___ \         | |/ _ \    | |         (_)      
+| |_/ / __ _  __| / /_\ \ __| |_ __ ___  _ _ __  
+| ___ \/ _` |/ _` |  _  |/ _` | '_ ` _ \| | '_ \ 
+| |_/ / (_| | (_| | | | | (_| | | | | | | | | | |
+\____/ \__,_|\__,_\_| |_/\__,_|_| |_| |_|_|_| |_|
+""")
 		print("\n" + NAME + " " + VERSION + "\n")
 		self.__warning()
 		
 		while self.__running == True:
 			try:
-				user_input = self.__user_input("> ")
+				user_input = self.__user_input("badadmin> ")
 		
 				input_list = user_input.split(" ")
 				
@@ -311,6 +325,10 @@ class badadmin():
 				
 				if command == "":
 					pass
+				elif command == "ls":
+					print("I'm not Linux...")
+				elif command == "spare":
+					print("...")
 				elif not command in VALID_COMMANDS :
 					print(command + ": invalid command")
 				elif command == "quit" or command == "exit":
@@ -327,6 +345,8 @@ class badadmin():
 				elif command == "help":
 					for command in VALID_COMMANDS:
 						print("\t" + command)
+				elif command == "clear":
+					print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 				else:
 					print("Invalid command - " + command)
 			except Exception as e:

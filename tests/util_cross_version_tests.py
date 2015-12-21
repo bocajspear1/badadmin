@@ -15,7 +15,14 @@ def isinteger_tests():
 	assert cross_version.isinteger(1.01) == False
 	assert cross_version.isinteger({1: 2}) == False
 	
-		
+def isnumeric_tests():
+	assert cross_version.isnumeric("hi there") == False
+	assert cross_version.isnumeric("1") == True
+	assert cross_version.isnumeric(1) == True
+	assert cross_version.isnumeric(1.01) == False
+	assert cross_version.isnumeric({1: 2}) == False
+	
+				
 
 def enum_tests():
 	
