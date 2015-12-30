@@ -14,6 +14,7 @@ from util.simple_filesystem import simple_dir
 from util.simple_command import simple_command
 from util.simple_packages import simple_packages
 from util.ba_random import ba_random as random_class
+from util.network import networking
 import util.os_data as os_data
 import base64
 
@@ -37,6 +38,9 @@ def convert_difficulty(difficulty):
 		
 ## Base class for dependency related classes (links and restrictions)
 class dependency_base(object):
+	
+	## Create a new dependency base object. Don't directly create one of these.
+	#
 	def __init__(self, provides_string, version_range):
 		
 		if not cross_version.isstring(provides_string):
@@ -46,16 +50,22 @@ class dependency_base(object):
 	
 		self.__version_range = version_util.version_range(version_range)
 	
-	
+	## The provides string of the link or dependency
+	#
+	# @returns string - The provides string
+	#
 	def provides_string(self):
 		return copy.deepcopy(self.__provides_string)
-		
+	
+	## The version_range object of the item
+	#
+	# @returns version_range - The version_range
+	#	
 	def version_range(self):
 		return copy.deepcopy(self.__version_range)
 		
-## Represents a link between a vulnerability and possible vulnerailities
-# that provide the requested service or application
-#
+## Represents a link between a vulnerability and possible modules that provide the required 
+# provides string
 #
 class dependency_link(dependency_base):
 	pass
@@ -65,7 +75,7 @@ class dependency_link(dependency_base):
 class version_restriction(dependency_base):
 	
 
-	# Check if the provides string and version do not fall under the restriction
+	## Check if the provides string and version do not fall under the restriction
 	def version_pass(self, provides_string, version_string):
 		
 		if not self.provides_string() == provides_string:
@@ -116,10 +126,10 @@ class vulnerability(object):
 	
 	## Constructor
 	#
-	# @param {string} name - The name of the vulnerability
-	# @param {string} description - A short description of what the vulnerability does
-	# @param {string} provides - What this vulnerability will provide (defaults to blank)
-	# @param {string} provides_version - The version number of the item installed by the vulnerability
+	# @param name (string) - The name of the vulnerability
+	# @param description (string) - A short description of what the vulnerability does
+	# @param provides (string) - What this vulnerability will provide (defaults to blank)
+	# @param provides_version (string) - The version number of the item installed by the vulnerability
 	#
 	def __init__(self, name, description, provides='', provides_version=''):
 		if (not cross_version.isstring(name) or not cross_version.isstring(description) 
@@ -144,28 +154,28 @@ class vulnerability(object):
 
 	## Returns the name of the vulnerability
 	# 
-	# @returns {string}
+	# @returns string
 	#
 	def name(self):
 		return self.__name
 
 	## Returns the description of the vulnerability
 	# 
-	# @returns {string}
+	# @returns string
 	#
 	def description(self):
 		return self.__description
 	
 	## Returns what the vulnerability provides
 	# 
-	# @returns {string}
+	# @returns string
 	#
 	def provides(self):
 		return self.__provides
 	
 	## Returns the version of what the vulnerabilty provides
 	# 
-	# @returns {string} - The version
+	# @returns version - The version
 	#
 	def version(self):
 		return copy.deepcopy(self.__version)
@@ -203,8 +213,8 @@ class vulnerability(object):
 	
 	## Adds a dependency and its version range
 	# 
-	# @param {string} provides_value - The version string to test the vulnerability 
-	# @param {string} version_range - The required version range of the dependency
+	# @param provides_value (string) - The version string to test the vulnerability 
+	# @param version_range (string) - The required version range of the dependency
 	#	
 	def add_dependency(self, provides_value, version_range):
 		if not cross_version.isstring(provides_value) or not cross_version.isstring(version_range):
@@ -304,16 +314,22 @@ class vulnerability(object):
 	
 	def get_difficulty(self):
 		return self.__difficulty
-		
+
+## Stores and processes documentation of actions taken within the module
+#		
 class doc():
 	
+	## Create a doc object
 	def __init__(self, module):
 		self.__doc_list = []
 		self.__module = module
-		
+	
+	## Adds a line of documentation for a given vulnerability
+	#
+	# @param string vuln - The name of the vulnerability being documented	
+	# @param string description - A description of actions taken
+	#	
 	def add_doc(self, vuln, description):
-		
-		
 		if not cross_version.isstring(vuln):
 			raise ValueError("Vulnerabilty value is not a string")
 			
@@ -325,6 +341,10 @@ class doc():
 	def __encrypt_doc(self, key):
 		pass
 	
+	## Returns all lines of documentation as a single string in the given format
+	#
+	# @param string output - Output type	
+	#
 	def get_all_docs(self, output="base64"):
 		if output == 'clear':
 			return self.__doc_to_string()
@@ -404,12 +424,14 @@ class module_base(object):
 		raise NotImplementedError 
 		
 	## ABSTRACT: Function for when the vulnerabilities are run
+	#
+	# @returns bool - Indicates if the vulnerabilities have run or not
 	def run(self, options={}):
 		raise NotImplementedError 
 	
-	## ABSTRACT: This function is called with a vulnerabilty object and values in the options for testing the functionality of module
-	def test_run(self, vuln_obj, options={}):
-		raise NotImplementedError 
+	# ABSTRACT: This function is called with a vulnerabilty object and values in the options for testing the functionality of module
+	#~ def test_run(self, vuln_obj, options={}):
+		#~ raise NotImplementedError 
 	
 # End abstract functions
 
@@ -567,6 +589,7 @@ class module_base(object):
 						if dep_restrict.range_pass(dep.provides_string(), dep.version_range()):
 							valid = False
 			
+			# Restrict by OS
 			if vuln.check_os_support() == False:
 				valid = False
 			
@@ -574,6 +597,30 @@ class module_base(object):
 				valid_list.append(copy.deepcopy(vuln))
 		
 		return valid_list
+	
+	def test(self, vuln_name):
+		
+		if vuln_name not in self.__vulnerability_list:
+			return False
+		
+		valid_list = self.__restricted_list()
+		
+		valid = False
+		
+		for i in range(len(valid_list)):
+			if valid_list[i].name() == vuln_name:
+				valid = True
+				
+		if valid == False:
+			return False
+		else:
+			self.__running_vulns = [vuln_name]
+			status = self.run()
+			if status == True:
+				print(self.doc.get_all_docs(output='clear'))
+			
+			return status
+		
 		
 	# Generates a list of vulnerabilities that the module has selected for running based on current restrictions
 	def __generate_vulnerabilities(self):
@@ -761,7 +808,12 @@ class module_base(object):
 	#
 	def random(self):
 		return random_class()
-		
+	
+	## Returns an instance of ba_random
+	#
+	# @param string filename - The name of the file
+	# @returns Returns a simple_file instance initialized to the provided filename
+	#	
 	def file(self, filename):
 		return simple_file(filename)
 		
@@ -776,3 +828,6 @@ class module_base(object):
 
 	def package_manager(self):
 		return simple_packages()
+
+	def network(self):
+		return networking()

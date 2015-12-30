@@ -12,7 +12,7 @@ import copy
 ## 
 # Returns the major version of the running Python
 #
-# @returns Integer - Value of major Python version
+# @returns int - Value of major Python version
 #
 def get_python_version():
 	return sys.version_info[0]
@@ -20,8 +20,8 @@ def get_python_version():
 ## 
 # Cross-version test to see if value is a string
 #
-# @param object string - Value to test if it is a string
-# @returns Boolean
+# @param string (object) - Value to test if it is a string
+# @returns bool
 #
 def isstring(string):
 	
@@ -37,8 +37,8 @@ def isstring(string):
 ## 
 # Cross-version test to see if value is an integer (no decimal)
 #
-# @param object value - Value to test if it is an integer
-# @returns Boolean
+# @param value (object) - Value to test if it is an integer
+# @returns bool
 #
 def isinteger(value):
 	
@@ -54,8 +54,8 @@ def isinteger(value):
 ## 
 # Cross-version test to see if value is a string with an integer (no decimal), or an integer
 #
-# @param object value - Value to test
-# @returns Boolean
+# @param value (object) - Value to test
+# @returns bool
 #
 def isnumeric(value):
 	python_version = get_python_version()

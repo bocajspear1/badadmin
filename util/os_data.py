@@ -37,7 +37,7 @@ _os_list = {
 
 ## Checks if the given string is a valid os_type value
 #
-# @param string os_type - String to test
+# @param os_type (string) - String to test
 # @returns Boolean
 #
 def valid_os(os_type):
@@ -48,8 +48,8 @@ def valid_os(os_type):
 
 ## Checks if the given string is a valid flavor for the given OS type
 #
-# @param string os_type - To OS type of the flavor
-# @param string flavor - The flavor value to test
+# @param os_type (string) - To OS type of the flavor
+# @param flavor (string) - The flavor value to test
 # @returns Boolean
 #	
 def valid_flavor(os_type, flavor):
@@ -91,9 +91,9 @@ class os_match(object):
 	
 	## Creates a os_match object
 	#
-	# @param string os_type - The type of OS to match. This must be set
-	# @param string flavor - The flavor or the OS type to match. Defaults to '*'
-	# @param string version_range - The version range of the flavor to match. Defaults to '*'
+	# @param os_type (string) - The type of OS to match. This must be set
+	# @param flavor (string) - The flavor or the OS type to match. Defaults to '*'
+	# @param version_range (string) - The version range of the flavor to match. Defaults to '*'
 	def __init__(self, os_type, flavor='*', version_range='*'):
 		
 		if valid_os(os_type):
@@ -198,7 +198,7 @@ class os_info(object):
 
 	## Compares the data gathered to the provided os_match object
 	#
-	# @param os_match match_obj - The match object to compare the current system to
+	# @param match_obj (os_match) - The match object to compare the current system to
 	# @returns True if system matches, False if not
 	#
 	def matches(self, match_obj):

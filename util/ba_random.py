@@ -12,7 +12,7 @@ class ba_random():
 	
 	## Returns a single random item from an array
 	#
-	# @param object[] array - Values to select random value from
+	# @param array (object[]) - Values to select random value from
 	# @returns object - Random value from array
 	#
 	def array_random(self, array):
@@ -25,8 +25,8 @@ class ba_random():
 	
 	## Returns string of random ASCII characters
 	#
-	# @param int min - [optional] Minimum size of the string
-	# @param int max - [optional] Maximum size of the string
+	# @param min (int) - [optional] Minimum size of the string
+	# @param max (int) - [optional] Maximum size of the string
 	# @returns string - Random string
 	#
 	def random_string(self, min=2, max=10):
@@ -44,8 +44,8 @@ class ba_random():
 	
 	## Returns a random number where the result N is end <= N >= start
 	#
-	# @param int start - Start of possible range
-	# @param int end - End of possible range (inclusive)
+	# @param start (int) - Start of possible range
+	# @param end (int) - End of possible range (inclusive)
 	# @returns int - Random integer
 	#
 	def random_number(self, start, end):
@@ -54,7 +54,7 @@ class ba_random():
 	## Simple function to test for True or False
 	# Used to indicate if something will or will not be done
 	#
-	# @returns Boolean
+	# @returns bool
 	#
 	def will_do(self):
 		i = self.random_number(0, 1)

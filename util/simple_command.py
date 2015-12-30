@@ -14,8 +14,8 @@ class simple_command():
 	
 	## Runs a command
 	# 
-	# @param string command_string - The command to run
-	# @param string[] send_list - Input to be given during execution, each item in the list will be inputted with a newline (\\n) at the end
+	# @param command_string (string) - The command to run
+	# @param send_list (string[]) - Input to be given during execution, each item in the list will be inputted with a newline (\\n) at the end
 	# @returns (output_list, error_list) - the output and any reported errors, respectively
 	#
 	def run(self, command_string, send_list=[]):

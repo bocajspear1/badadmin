@@ -11,14 +11,16 @@ import re
 
 ## @class version
 #
-# Represents a version of an application
+# Represents a version of an application.
+# 
+# Versions are comparable (e.g. ==, <) to other version objects
 # 
 #
 class version(object):
 	
 	## Create a version object
 	#
-	# @param string input_string - Version in string format
+	# @param input_string (string) - Version in string format
 	def __init__(self, input_string):
 		
 		if not cross_version.isstring(input_string):
@@ -147,13 +149,14 @@ class version(object):
 ## @class version_range
 #
 # Represents a version range
-# 
+#
+# Can be compared for equality to other version_range objects
 #
 class version_range(object):
 	
 	## Create a version object
 	#
-	# @param string version_range_string - Version range in string format
+	# @param version_range_string (string) - Version range in string format
 	def __init__(self, version_range_string):
 		if not cross_version.isstring(version_range_string):
 			raise ValueError("Invalid value for range")	
@@ -177,6 +180,7 @@ class version_range(object):
 	## Get the original string
 	#
 	# @returns string - Original string
+	#
 	def get_string(self):
 		return self.__string
 	
@@ -184,9 +188,9 @@ class version_range(object):
 	## Compares a version object to the range to see if the value in the
 	# version object falls within the range
 	# 
-	# @param version check - Version object to check 
+	# @param check (version) - Version object to check 
 	#
-	# @returns Boolean
+	# @returns bool
 	#
 	def in_range(self, check):
 		if not isinstance(check, version):
@@ -211,14 +215,14 @@ class version_range(object):
 	
 	## Returns just the version stored in the range
 	# 
-	# @returns Boolean
+	# @returns version - Version object
 	#
 	def extract_version(self):
 		return copy.deepcopy(self.__version)
 	
 	## Returns just the direction(<,>,==, etc.) stored in the range
 	# 
-	# @returns Boolean
+	# @returns string - Direction in string format
 	#
 	def extract_direction(self):
 		return self.__range_direction
@@ -226,9 +230,9 @@ class version_range(object):
 	## Compares another version range to the current range to see if they
 	# will at any point intersect
 	#
-	# @param version_range other - Version range object to check 
+	# @param other (version_range) - Version range object to check 
 	#
-	# @returns Boolean
+	# @returns bool
 	#
 	def intersects(self, other):
 		other_version = other.extract_version()
@@ -257,131 +261,4 @@ class version_range(object):
 
 ## @endcond
 		
-def is_range(value):
-	if not cross_version.isstring(value):
-		return False
-	
-	if value == "*" or value == "-":
-		return True
-	
-	if not (value.startswith(">") or value.startswith("<") or value.startswith("=")) or len(value) < 2:
-		return False
-	
-	
-	return True
 
-
-#~ ## Compares the given input string to the current vulnerability's
-#~ # version. Returns a number (1-, 0, 1) based on the relation of the input
-#~ # version to the internal version. Does not take versions with >/</= in
-#~ # front of them, will throw an error
-#~ #
-#~ # -1 = The inputted version is lower then the internal version
-#~ # 0 = The inputted version is equal to the internal version
-#~ # 1 = the inputted version is greater the than the internal version
-#~ # 
-#~ # @param {string} version - The version to compare
-#~ # @returns {integer}
-#~ #	
-#~ def compare_version(test_version, comparison_version):
-	
-	#~ if not cross_version.isstring(test_version) or not cross_version.isstring(comparison_version):
-		#~ raise ValueError("Versions must be strings")
-	
-	#~ if not test_version.startswith(">") and not test_version.startswith("<") and not test_version.startswith("="):
-		#~ if test_version > comparison_version:
-			#~ return 1
-		#~ elif test_version == comparison_version:
-			#~ return 0
-		#~ elif test_version < comparison_version:
-			#~ return -1
-		#~ else:
-			#~ raise ValueError("Range found where version expected")	
-		
-	#~ else:
-		#~ raise ValueError("Invalid version")	
-	
-#~ ## Tests vulnerability version against a given version to see if the vulnerability
-#~ # version falls within the bounds of the inputted version
-#~ #
-#~ # @param {string} version_range - The version string to test the vulnerability against
-#~ # @returns {boolean} = True if the vulnerabilty version passes, False if it does not
-#~ #
-#~ def test_range(version_range, test_version):
-	
-	#~ if not cross_version.isstring(version_range):
-		#~ raise ValueError("Invalid version comparison")	
-	
-	#~ range_data = range_extract(version_range)
-	
-	#~ if range_data[0] == "<=":
-		#~ if test_version <= range_data[1]:
-			#~ return True
-		#~ else:
-			#~ return False
-	#~ elif range_data[0] == ">=":
-		#~ if test_version >= range_data[1]:
-			#~ return True
-		#~ else:
-			#~ return False
-	#~ elif range_data[0] == "<":
-		#~ if test_version < range_data[1]:
-			#~ return True
-		#~ else:
-			#~ return False
-	#~ elif range_data[0] == ">":
-		#~ if test_version > range_data[1]:
-			#~ return True
-		#~ else:
-			#~ return False
-	#~ elif range_data[0] == "=":
-		#~ if test_version == range_data[1]:
-			#~ return True
-		#~ else:
-			#~ return False
-	#~ else:
-		#~ raise ValueError("Invalid range")
-
-
-#~ def range_extract(version_range):
-	
-	#~ if not cross_version.isstring(version_range):
-		#~ raise ValueError("Invalid value for range_extract")	
-	
-	#~ range_dir = ""
-	#~ only_version = ""
-	
-	#~ if version_range.startswith("<=") or version_range.startswith(">="):
-		#~ range_dir = version_range[:2]
-		#~ only_version = version_range[2:]
-	#~ elif version_range.startswith("<") or version_range.startswith(">") or version_range.startswith("="):
-		#~ range_dir = version_range[:1]
-		#~ only_version = version_range[1:]
-	#~ else:
-		#~ range_dir = "="
-		#~ only_version = version_range
-		
-	#~ return (range_dir, only_version)
-
-#~ # Rules:
-#~ # Return True if ranges intersect
-#~ # Return False ranges do not intersect
-#~ def ranges_intersect(range1, range2):
-	
-	#~ range1_data = range_extract(range1)
-	#~ range2_data = range_extract(range2)
-	
-	#~ HAS_EQUAL = [">=", "<=", "="]
-	
-	#~ if ((range1_data[0] == "<" or range1_data[0] == "<=") and 
-		#~ range1_data[1] < range2_data[1] and 
-		#~ (range2_data[0] == ">" or range2_data[0] == ">=") ):
-		#~ return False
-	#~ elif ((range2_data[0] == "<" or range2_data[0] == "<=") and 
-		#~ range2_data[1] < range1_data[1] and 
-		#~ (range1_data[0] == ">" or range1_data[0] == ">=")  ):
-		#~ return False
-	#~ elif (range1_data[1] == range2_data[1] and (range1_data[0] not in HAS_EQUAL or range2_data[0] not in HAS_EQUAL)):
-		#~ return False
-	#~ else:
-		#~ return True

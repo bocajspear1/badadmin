@@ -16,7 +16,7 @@ stub_map = {}
 
 ## Imports a module given by name
 #
-# @param string module_name - The name of the module
+# @param module_name (string) - The name of the module
 # @returns None or module object
 #
 def import_module(module_name):
@@ -36,8 +36,8 @@ def import_module(module_name):
 
 ## Checks if a module exists and all files are properly
 #
-# @param string module_name - The name of the module
-# @returns Boolean
+# @param module_name (string) - The name of the module
+# @returns bool
 #
 def module_exists(module_name):
 	if not util.cross_version.isstring(module_name):
@@ -76,8 +76,8 @@ def get_module_list():
 #
 # This can override existing modules
 #
-# @param string module_name - Name the stub module will respond for
-# @param object module_object - Object (subclass of module_base) that will act as the module
+# @param module_name (string) - Name the stub module will respond for
+# @param module_object (object) - Object (subclass of module_base) that will act as the module
 #
 def set_stub_module(module_name, module_object):
 	if module_exists(module_name):
@@ -90,7 +90,7 @@ def set_stub_module(module_name, module_object):
 
 ## Removes a stub module
 #
-# @param string module_name - Name of the stub module that will be removed
+# @param module_name (string) - Name of the stub module that will be removed
 #	
 def remove_stub_module(module_name):
 	if module_name in stub_map:
@@ -98,7 +98,7 @@ def remove_stub_module(module_name):
 
 ## Returns a copy of the stub mappings
 #
-# @returns dict: Key = module name, Value = module object
+# @returns dict - 'key' = module name, 'value' = module object
 #
 def get_stubs():
 	return copy.deepcopy(stub_map)

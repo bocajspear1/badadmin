@@ -1,9 +1,15 @@
+## @package util.network
+#
+# Utilities for getting network information
+#
 import util.os_data as os_data
 import util.simple_command as simple_command
 import util.cross_version as cross_version
 
 import re
 
+## Stores networking information for the current system
+#
 class networking(object):
 	
 	## Create a networking object
@@ -92,8 +98,6 @@ class networking(object):
 				#~ print(self.__interfaces)
 			else:
 				print("Error running ip addr")
-				
-			
 		elif os_data.os_info().matches(os_data.os_match('windows')):
 			pass
 	
@@ -201,8 +205,8 @@ class networking(object):
 	
 	## Get the IPv4 and IPv6 base network addresses for the given interface
 	#
-	# @param string interface - Name of interface to query the network address of
-	# @returns Tuple = (IPv4_ADDRESS, IPv6_ADDRESS)
+	# @param interface (string) - Name of interface to query the network address of
+	# @returns tuple - (IPv4_ADDRESS, IPv6_ADDRESS)
 	#
 	def get_networks(self, interface):
 		if interface in self.__interfaces:
@@ -234,8 +238,8 @@ class networking(object):
 	
 	## Gets all available addresses for an interface
 	#
-	# @param string interface - Name of interface to query the addresses of
-	# @returns dictionary - mac, ipv4, ipv6 or None
+	# @param interface (string) - Name of interface to query the addresses of
+	# @returns dict - {mac, ipv4, ipv6} or None
 	#
 	def get_addresses(self, interface):
 		if interface in self.__interfaces:

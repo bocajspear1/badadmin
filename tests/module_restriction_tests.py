@@ -1,4 +1,5 @@
 import util.module_util as module_util
+import util.os_data as os_data
 
 def test_version_restriction_ver():
 	test_obj = module_util.import_module('test_module')
@@ -69,3 +70,20 @@ def test_version_restriction_dep():
 	
 	assert len(test_obj.get_vulnerabilities(force=True)) == 0
 
+def test_version_restriction_os():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_OS", "Test", "restrict", "1.0.0")
+	
+	test_obj.add_vulnerability(vuln)
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+	
+	if os_data.os_info().matches(os_data.os_match('linux', 'ubuntu')):
+		vuln.add_supported_os('linux', 'centos')
+	else:
+		vuln.add_supported_os('linux', 'ubuntu')
+		
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+	

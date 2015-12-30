@@ -350,6 +350,27 @@ def test_file_set_owner():
 	assert ownership['uid'] == 2
 	assert ownership['gid'] == 2
 	
+	test_file.set_ownership_by_name(uid1)
+	
+	ownership = test_file.get_ownership()
+
+	
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid2
+	
+	assert ownership['uid'] == 1
+	assert ownership['gid'] == 2
+	
+	test_file.set_ownership_by_name(u_name=None, g_name=uid1)
+	
+	ownership = test_file.get_ownership()
+	
+	assert ownership['owner_name'] == uid1
+	assert ownership['group_name'] == uid1
+	
+	assert ownership['uid'] == 1
+	assert ownership['gid'] == 1
+	
 	assert test_file.remove() == True
 
 def test_file_permissions():

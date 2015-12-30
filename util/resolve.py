@@ -16,6 +16,8 @@ MAX_DEPTH = 25
 #
 class resolver(object):
 	
+	## Create a new resolver object
+	#
 	def __init__(self, debug=False):
 		
 		self.__name_map = {} # Maps a module name to its object
@@ -41,12 +43,21 @@ class resolver(object):
 		# Indicate if the process needs to be verbose
 		self.__debug = debug
 	
+	## Set the difficulty limit for modules
+	#
+	# @param level (int) - The dofficulty level by numbers 1 - 3 (easy - hard)
+	#
 	def set_difficulty(self, level):
 		if level >=0 and level <= 3:
 			self.__difficulty == level
 		else:
 			raise ValueError("Invalid difficulty level")
-			
+	
+	## Add a module to the resolver
+	#
+	# @param module (string|base_module) - Module name to add or module object to add		
+	# @param module (string[]) - List of vulnerability names that are forced for the module
+	#
 	def add_module(self, module, forced=[]):
 		
 		if issubclass(module.__class__, base.module_base):
@@ -74,7 +85,11 @@ class resolver(object):
 		self.__name_map[module_name].set_difficulty_limit(self.__difficulty)
 		
 		self.__set_modules.append(module_name)
-
+	
+	## Start the dependency resolution
+	#
+	# @returns bool - True if successful, False if not
+	#
 	def start_resolve(self):
 		
 		if self.__debug:
@@ -469,7 +484,11 @@ class resolver(object):
 			return_list += module_map[module]['list'] + [module]
 			
 		return return_list, set(all_used), set(all_modified)
-			
+	
+	## Returns a list of module names in order of operation
+	#
+	# @returns string[] - List of module names. Give as parameter to get_install_modules to get the objects.
+	#		
 	def get_install_order(self):
 		
 		if self.__debug:
@@ -488,7 +507,12 @@ class resolver(object):
 		ordered_list, modified_cmds, used_cmds = self.__order_modules(top_list, 0)
 		
 		return ordered_list
-		
+	
+	## Returns a list of module names in order of operation
+	#
+	# @param module_list (string[]) - List of module names to get the objects of. Done in order
+	# @returns modules[] - List of module objects
+	#	
 	def get_install_modules(self, module_list):
 		
 		return_list = []
@@ -498,58 +522,4 @@ class resolver(object):
 		
 		return return_list
 		
-	#~ def __get_child_lists(self, parent):
-		#~ child_list = self.__get_children(parent)
-		
-		#~ parent_obj = self.__name_map[parent]
-		#~ parent_used = []
-		#~ parent_modified = []
-		
-		#~ for vuln in self.__vuln_map[parent]:
-			#~ parent_used += vuln.get_cmd_uses()
-			#~ parent_modified += vuln.get_cmd_modifies()
-			
-		#~ parent_used = set(parent_used)
-		#~ parent_modified = set(parent_modified)
-		
-		
-		#~ child_map = {}
-		#~ child_list = []
-		
-		#~ for child in child_list:
-			#~ ordered_list, modified_cmds, used_cmds = self.__get_child_lists(child)
-			#~ parent_modified.union(modified_cmds)
-			#~ parent_used.union(used_cmds)
-			#~ child_map[child] = {"list": ordered_list, "modified": modified_cmds, "used": used_cmds}
-			#~ if len(return_list) == 0:
-				#~ return_list.append(child)
-			#~ else:
-				
-				#~ insert_pos = -1
-				
-				#~ for i in range(len(return_list)):
-					#~ r_item = child_map[return_list[i]]
-					#~ current = child_map[child]
-					
-					#~ if current['used'].isdisjoint(r_item['modified']) and insert_pos == -1:
-						#~ insert_pos = i
-					
-					#~ if not current['modified'].isdisjoint(r_item['used']):
-						#~ print("Used/Modified collision")
-						#~ return [], None, None
-					
-					#~ if i == len(return_list) - 1:
-						#~ insert_pos = len(return_list)
-					
-					
-								
-				#~ if insert_pos == -1:
-					#~ print("Could not insert into install order")
-					#~ return [], None, None
-				#~ else:
-					#~ return_list.insert(insert_pos, child)
-					
-		#~ child_set = set(parent).union(set(child_list))
-			
-		#~ return child_set, parent_modified, parent_used
 				

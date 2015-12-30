@@ -24,7 +24,8 @@ VALID_COMMANDS = [
 		"run",
 		"show",
 		"set",
-		"clear"
+		"clear",
+		"debug"
 	]
 
 ## @class badadmin
@@ -45,6 +46,7 @@ class badadmin():
 			sys.exit()
 		
 		self.__running = True
+		self.__debug_mode = False
 		
 		self.__vars = {
 			"to_run": {"type": "list", "value": [], "description": "Modules to be run"},
@@ -113,9 +115,9 @@ class badadmin():
 			else:
 				print("Variable '" + key + "' is invalid")
 			
-	
 	def __help(self, options):
-		pass
+		for command in VALID_COMMANDS:
+			print("\t" + command)
 		
 	def __module(self, options):
 		
@@ -142,7 +144,6 @@ class badadmin():
 					else:
 						print("Module '" + module_name + "' does not exist")
 			elif subcommand == "random":	
-				
 				rand_list = []
 				
 				while len(rand_list) == 0:
@@ -234,13 +235,34 @@ class badadmin():
 							print("Module '" + module + "' does not have the vulnerability '" + vuln + "'")
 					else:
 						print("Module '" + module + "' does not exist")
+			elif subcommand == "test":
+				if self.__debug_mode == False:
+					print("'module test' can only be used in debug mode")
+				elif not len(options) == 2:
+					print("Enter a module and vulnerability to test")
+				else:
+					module = options[0]
+					vuln = options[1]
 					
+					if module_util.module_exists(module):
+						module_obj = module_util.import_module(module)
+						
+						if vuln in module_obj.vulnerability_list():
+							result = module_obj.test(vuln)
+							if result == False:
+								print("Test failed")
+							else:
+								print("Test succeeded")
+						else:
+							print("Module '" + module + "' does not have the vulnerability '" + vuln + "'")
+					else:
+						print("Module '" + module + "' does not exist")
 			else:
 				print("module: invalid subcommand '" + subcommand + "'")
 			
 	def __run(self, options):
 		if not len(self.__vars['to_run']['value']) > 0:
-			print("\nERROR: No modules have been added. Cannot run\n")
+			print("\nERROR: No modules have been added. Cannot run.\n")
 		else:
 			self.__warning()
 			print ("\n\nAre you sure you want to run the modules? The changes made by " + NAME + " cannot be reversed!\nType 'yes' if you want to continue\n")
@@ -249,7 +271,13 @@ class badadmin():
 			
 			if answer == "yes":
 				print("Resolving module dependencies...")
-				resolver = resolve.resolver()
+				
+				resolver = None
+				if self.__debug_mode == True:
+					resolver = resolve.resolver(debug=True)
+				else:	
+					resolver = resolve.resolver()
+					
 				if not self.__vars['level']['value'] == 'any':
 					resolver.set_difficulty(self.__vars['level']['value'])
 				for module in self.__vars['to_run']['value']:
@@ -259,6 +287,7 @@ class badadmin():
 						resolver.add_module(module, forced=self.__vars['force']['value'][module])
 					else:
 						resolver.add_module(module)
+						
 
 				resolver.start_resolve()
 				
@@ -266,29 +295,48 @@ class badadmin():
 				order_list = resolver.get_install_modules(resolver.get_install_order())
 				
 				for module in order_list:
-					if self.__vars['verbose']['value'] == True:
+					if self.__vars['verbose']['value'] == True or self.__debug_mode == True:
 						print("\tRunning " + module.name())
 				
 				print("Executing modules...")
 				
 				for module in order_list:
-					if self.__vars['verbose']['value'] == True:
+					if self.__vars['verbose']['value'] == True or self.__debug_mode == True:
 						print("\tExecuting " + module.name())
 						for vuln in module.get_running_vulns():
 							print("\t  |-" + vuln.name())
 					result = None
-					result = module.run()
-					if result == False:
-						print("Module " + module.name() + " failed! Halting.")
-						return
-				
-				print("Execution complete!")
-				for module in order_list:
-					print(module.doc.get_all_docs(output='clear'))
+					
+					if self.__debug_mode == False:
+						result = module.run()
+						if result == False:
+							print("Module " + module.name() + " failed! Halting.")
+							return
+							
+				if self.__debug_mode == False:
+					print("Execution complete!")
+					for module in order_list:
+						print(module.doc.get_all_docs(output='clear'))
 					
 			else:
 				print("'yes' not given. Stopping...")  
-		
+	
+	def __debug(self, options):
+		if len(options) == 0:
+			print("Incomplete command")
+			print("Valid options: on off")
+		else:
+			option = options[0].strip()
+			
+			if option == "on":
+				print("Debugging mode on")
+				self.__debug_mode = True
+			elif option == "off":
+				print("Debugging mode off")
+				self.__debug_mode = False	
+			else:
+				print("Invalid option")
+				
 	def __user_input(self, prompt):
 		try:
 			input_val = ""
@@ -316,7 +364,10 @@ ______           _  ___      _           _
 		
 		while self.__running == True:
 			try:
-				user_input = self.__user_input("badadmin> ")
+				if self.__debug_mode == True:
+					user_input = self.__user_input("(debug)badadmin> ")
+				else:
+					user_input = self.__user_input("badadmin> ")
 		
 				input_list = user_input.split(" ")
 				
@@ -343,8 +394,9 @@ ______           _  ___      _           _
 				elif command == "set":
 					self.__set(input_list)
 				elif command == "help":
-					for command in VALID_COMMANDS:
-						print("\t" + command)
+					self.__help()
+				elif command == "debug":
+					self.__debug(input_list)
 				elif command == "clear":
 					print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
 				else:
