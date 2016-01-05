@@ -28,6 +28,36 @@ VALID_COMMANDS = [
 		"debug"
 	]
 
+HELP_TOPICS = {
+	'exit': 'Exit BadAdmin',
+	'quit': 'Exit BadAdmin',
+	'help': 'Help with help?',
+	'show': {
+		'DEFAULT': 'Show variables and settings',
+		'vars': 'Show BadAdmin enviroment variables',
+		'modules': 'Show the modules that currently set to be run'
+	},
+	'set': {
+		'DEFAULT': 'Set BadAdmin enviroment variables\n\nUsage: set <variable name> <value>'
+	},
+	'module': {
+		"DEFAULT": "Adds, lists and removes modules",
+		"test": "Test a vulnerability in a module. Can only be used in debug mode.\n\nUsage: module test <MODULE> <VULN_NAME>",
+		"add": "Select a module to be run.\n\nUsage: module add <MODULE>",
+		"remove": "Unselect a module to stop it from running\n\nUsage: module remove <MODULE>",
+		"info": "Get more info on a module, including a list of vulnerabilities.\n\nUsage: module info <MODULE>",
+		'random': "Get randomized vulnerabilities, selections based on the 'difficulty' variable",
+		'force': "Force a particular vulnerability to run in a module.\n\nUsage: module force <MODULE> <VULN_NAME>"
+	},
+	'run': 'Execute all selected modules',
+	'clear': 'Clears the screen',
+	'debug': {
+		"DEFAULT": "\nEnables or disables debug mode. \nValid options: on, off\n\nDebug mode does the following:\n * Makes all commands verbose\n * Stops 'run' from running the modules\n * Only shows dependency resolution during 'run'\n * Allows 'module test'",
+		"on": "Turns debug mode on",
+		"off": "Turns debug mode off"
+	}
+}
+
 ## @class badadmin
 # 
 # User interface class
@@ -116,14 +146,44 @@ class badadmin():
 				print("Variable '" + key + "' is invalid")
 			
 	def __help(self, options):
-		for command in VALID_COMMANDS:
-			print("\t" + command)
-		
+		if len(options) == 0:
+			print("Available commands:")
+			for command in VALID_COMMANDS:
+				print("\t" + command)
+			print("For help with commands, type 'help <COMMAND>'\n\n")
+			print("Other help topics:")
+			print("\tvulns\n\tvars\n")
+		else:
+			command = options[0]
+			if not command in VALID_COMMANDS:
+				print("Invalid command")
+			else:
+				if command in HELP_TOPICS:
+					if cross_version.isstring(HELP_TOPICS[command]):
+						print(command + ": " + HELP_TOPICS[command])
+					elif "DEFAULT" in HELP_TOPICS[command] and len(options) == 1:
+						print("\n" + command + ": " + HELP_TOPICS[command]["DEFAULT"] + "\n")
+						if len(HELP_TOPICS[command]) > 1:
+							print("\nSubcommands:\n")
+							for sub in HELP_TOPICS[command]:
+								if sub != 'DEFAULT':
+									print("\t" + sub)
+							print("\n")
+					elif len(options) == 2:
+						subcommand = options[1]
+						if subcommand in HELP_TOPICS[command]:
+							print("\n" + command + " " + subcommand + ": " + HELP_TOPICS[command][subcommand] + "\n")
+						else:
+							print("No help topics available")
+						
+					else:
+						print("No help topics available")
+	
 	def __module(self, options):
 		
 		if len(options) == 0:
 			print("Incomplete command")
-			print("Valid sub-commands: add, remove, info, list, random, force")
+			print("Valid sub-commands: add, remove, info, list, random, force, test")
 		else:
 			subcommand = options[0]
 			del options[0]
@@ -145,6 +205,7 @@ class badadmin():
 						print("Module '" + module_name + "' does not exist")
 			elif subcommand == "random":	
 				rand_list = []
+				self.__vars['to_run']['value'] = []
 				
 				while len(rand_list) == 0:
 				
@@ -170,7 +231,9 @@ class badadmin():
 							print("Could not import module "+ module)
 						
 					
-				print(rand_list)			
+				for module_name in rand_list:
+					self.__vars['to_run']['value'].append(module_name)		
+						
 			elif subcommand == "remove":
 				if not len(options) == 1:
 					print("module add: No module set")
@@ -394,7 +457,7 @@ ______           _  ___      _           _
 				elif command == "set":
 					self.__set(input_list)
 				elif command == "help":
-					self.__help()
+					self.__help(input_list)
 				elif command == "debug":
 					self.__debug(input_list)
 				elif command == "clear":
