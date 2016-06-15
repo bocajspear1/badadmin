@@ -34,10 +34,6 @@ class test_module(module_base):
 
 	def run(self):
 		pass
-		
-	## Function for when a vulnerability is tested
-	def test_run(self, vuln_obj, options={}):
-		pass
 
 	def set_name(self, name):
 		if self.cross_version().isstring(name):

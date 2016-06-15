@@ -9,14 +9,18 @@ from util.simple_filesystem import simple_file
 from util.simple_filesystem import simple_dir
 import subprocess
 
+## Simplified package management
+#
 class simple_packages:
 	
+	## Create a new instance of simple_packages
 	def __init__(self):
 		self.__package_manager = None
 		self.__detect_package_manager()
 		if self.__package_manager == None:
 			print("Package manager on the system is not supported")
-		
+			
+	# Detect what package manager is installed
 	def __detect_package_manager(self):
 		pkg_manager_list = [
 		'yum',
@@ -28,10 +32,18 @@ class simple_packages:
 		elif simple_dir("/etc/apt").exists():
 			self.__package_manager = "apt"
 			
-	
+	## Get the package manager on the system
+	# 
+	# @returns string - The name of the package manager
+	#
 	def get_package_manager(self):
 		return self.__package_manager
 	
+	## Check if the package is installed
+	#
+	# @param package (string) - The name of the package to check
+	# @returns bool - True if the package is installed, False if not
+	#
 	def is_installed(self, package):
 		
 		if not cross_version.isstring(package):
@@ -56,8 +68,13 @@ class simple_packages:
 				return True
 			else:
 				return False
-		
-	def install(self, package):
+	
+	## Install a package to the system
+	#
+	# @param package (string) - The name of the package to install
+	# @param version (string) - The version of the package to install. Defaults to None which installs the latest version
+	#
+	def install(self, package, version=None):
 		
 		if not cross_version.isstring(package):
 			raise ValueError("Package name is not a string")
@@ -77,9 +94,19 @@ class simple_packages:
 		else:
 			return False
 	
+	## Removes a package from the system
+	#
+	# @param package (string) - Name of the package to remove
+	# @returns bool - True if successful, False if not
+	#
 	def remove(self, package):
 		return self.uninstall(package)
 	
+	## Removes a package from the system
+	#
+	# @param package (string) - Name of the package to remove
+	# @returns bool - True if successful, False if not
+	#
 	def uninstall(self, package):	
 		if not cross_version.isstring(package):
 			raise ValueError("Package name is not a string")
@@ -101,14 +128,3 @@ class simple_packages:
 	def available_versions(self, package):
 		pass
 
-	def insert_repo(self, name, url, append=False):
-		
-		if not cross_version.isstring(name):
-			raise ValueError("Name is not a string")
-			
-		if self.__package_manager == "yum":
-			
-			file_path = "/etc/yum.repos.d/" + name + ".repo"
-			
-		elif self.__package_manager == "apt":
-			pass

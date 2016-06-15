@@ -20,18 +20,18 @@ class nfs_config(module_base):
 		super(nfs_config, self).__init__()
 		
 		root_export_vuln = self.new_vulnerability('UNSECURE_EXPORT_ROOT_FS', 'Exports the entire root fs with very low security')
-		root_export_vuln.add_dependency('nfsserver', '*')
+		root_export_vuln.add_dependency(('nfsserver', '*'))
 		root_export_vuln.set_difficulty('easy')
 		self.add_vulnerability(root_export_vuln)
 		
 		low_sec_vuln = self.new_vulnerability('LOW_SECURITY_EXPORT', 'Adds an export that has low security')
-		low_sec_vuln.add_dependency('nfsserver', '*')
+		low_sec_vuln.add_dependency(('nfsserver', '*'))
 		low_sec_vuln.set_difficulty('medium')
 		self.add_vulnerability(low_sec_vuln)
 		
 		
 		none_vuln = self.new_vulnerability('NONE', 'Creates a normal NFS share')
-		none_vuln.add_dependency('nfsserver', '*')
+		none_vuln.add_dependency(('nfsserver', '*'))
 		self.add_vulnerability(none_vuln)
 		
 

@@ -8,6 +8,11 @@ import modules.base as base
 from util.ba_random import ba_random
 import copy
 
+
+## REMOVE FOR PRODUCTION
+import inspect
+
+## Maximum depth of dependencies before the resolver gives up. Keeps it from looping forever.
 MAX_DEPTH = 25
 
 ## @class resolver
@@ -25,6 +30,7 @@ class resolver(object):
 		self.__provides_map = {} # Maps a module to what it provides
 		self.__vuln_map = {} # Maps a module's name to a list of vulnerability objects
 		self.__processed = [] # List of processed vulnerabilities
+		self.__load_restrictions = [] # List of modules that should not be attempted to load again
 		
 		self.__set_modules = [] # Lists modules that were added externally, not loaded during resolution
 		
@@ -56,7 +62,7 @@ class resolver(object):
 	## Add a module to the resolver
 	#
 	# @param module (string|base_module) - Module name to add or module object to add		
-	# @param module (string[]) - List of vulnerability names that are forced for the module
+	# @param forced (string[]) - List of vulnerability names that are forced for the module
 	#
 	def add_module(self, module, forced=[]):
 		
@@ -73,6 +79,7 @@ class resolver(object):
 				print("Adding module " + module_name)
 			
 			self.__insert_module(module_name, module_util.import_module(module_name))
+			self.__set_modules.append(module_name)
 			
 			if len(forced) > 0:
 				self.__name_map[module_name].set_forced(forced)
@@ -83,9 +90,7 @@ class resolver(object):
 	def __insert_module(self, module_name, module_obj):
 		self.__name_map[module_name] = module_obj
 		self.__name_map[module_name].set_difficulty_limit(self.__difficulty)
-		
-		self.__set_modules.append(module_name)
-	
+
 	## Start the dependency resolution
 	#
 	# @returns bool - True if successful, False if not
@@ -107,7 +112,9 @@ class resolver(object):
 			
 			if self.__debug:
 				print("At position " + str(pos))
-				print("Proccesed: " + str(self.__processed))
+				print("Processed: ")
+				for name in self.__processed:
+					print("\t" + name)
 				
 			if pos > len(name_list):
 				print("Invalid state, pos is greater than loaded modules")
@@ -117,12 +124,15 @@ class resolver(object):
 			
 			current_module = self.__name_map[name_list[pos]]
 			
-			result = self.__resolve_module(current_module, 0)
+			result = self.__resolve_module(current_module, 1)
 			
 			# Delete name maps that are empty
-			for name in self.__name_map:
+			for name in copy.deepcopy(self.__name_map):
 				if self.__name_map[name] == None:
+					if self.__debug:
+						print("Removing " + name)
 					del self.__name_map[name]
+					del self.__parent_map[name]
 			
 			end_list = copy.deepcopy(self.__name_map)
 			name_list = list(self.__name_map.keys())
@@ -160,10 +170,20 @@ class resolver(object):
 				
 	def __resolve_module(self, module_obj, depth, ver_restrictions=[], dep_restrictions=[]):
 		
-		front = "  " * depth
+		front = "\t" * depth
 		
-		if self.__debug:	
-			print(front + "Version Restrictions: " + str(ver_restrictions))
+		if self.__debug:
+			print("\n\n" + front +  "Starting resolve for " + module_obj.name())
+			print(front + "M: name_map: ")
+			for name in self.__name_map:
+				print(front + "\t" + name + ": " + str(self.__name_map[name]))
+			print(front + "M: provides_map: " + str(self.__provides_map))
+			print(front + "M: parent_map: " + str(self.__parent_map))
+			print(front + "M: vuln_map: " + str(self.__vuln_map))
+			print(front + "M: Processed: " + str(self.__processed))
+			print(front + "M: Version Restrictions: " + str(ver_restrictions))
+			print("\n")	
+			
 		
 		# Insert restrictions here
 		for ver_restrict in ver_restrictions:
@@ -175,146 +195,274 @@ class resolver(object):
 		for dep_restrict in dep_restrictions:
 			if module_obj.has_provides(dep_restrict.provides()):
 				module_obj.add_version_restriction(dep_restrict.provides_string(), dep_restrict.version_range())	
-		
-		
-		
+
 		if depth + 1 >= MAX_DEPTH:
 			self.__add_faulting_module(module_obj.get_class_name(), "Max depth exceeded!")
 			return False
 		elif self.__restarting == True:
+			print("Restarting...")
 			return False
 		
-		
-		vuln_list = module_obj.get_vulnerabilities()
-		
-		if len(vuln_list) == 0:
-			self.__add_faulting_module(module_obj.get_class_name(), "Could not find usable vulnerabilities for module " + module_obj.get_class_name())
-			return False
-		elif module_obj.get_class_name() in self.__processed:
+		# Continue if the module has already been processed
+		if module_obj.get_class_name() in self.__processed:
 			if self.__debug:
 				print(front + "Module " + module_obj.get_class_name() + " has already been processed!")
 			return True
-		else:
-			if self.__debug:
-				print("\n\n" + front +  "Starting resolve for " + module_obj.name())
-				print(front + "name_map: " + str(self.__name_map))
-				print(front + "provides_map: " + str(self.__provides_map))
-				print(front + "parent_map: " + str(self.__parent_map))
-				print(front + "vuln_map: " + str(self.__vuln_map))
-				print(front + "processed: " + str(self.__processed))
-				print("\n")
+		
+		 
+		
+		# Get vulnerabilities the module currently thinks are valid
+		
+		done = False
+		
+		while done == False:
 			
-			dep_result = True
+			vuln_list = module_obj.get_vulnerabilities(force=True)
+
 			
-			self.__vuln_map[module_obj.get_class_name()] = vuln_list
+			if len(vuln_list) == 0:
+				#~ self.__add_faulting_module(module_obj.get_class_name(), "Could not find usable vulnerabilities for module " + module_obj.get_class_name())
+				if self.__debug:
+					print(front + "M: No vulnerabilities found for module '" + module_obj.get_class_name() + "'")
+				return False
+			else:
+				
+				self.__vuln_map[module_obj.get_class_name()] = vuln_list
+				
 			
-			for vuln in vuln_list:
+
+				vulns_status = True
+				
+				for vuln in vuln_list:
+
+					result = self.__resolve_vuln(module_obj, depth, vuln, ver_restrictions, dep_restrictions)
+					
+					if result == False:
+						module_obj.add_vuln_restriction(vuln.name());
+					
+					vulns_status = result and vulns_status
+					
+				if vulns_status == True:
+					self.__processed.append(module_obj.get_class_name())
+					return True
+				else:
+					if self.__debug:
+						print("Vulnerabilities failed to resolve, trying again")
+
+		return False	
+								
+	# Returns True if vulnerability successfully resolved, False if not		
+	def __resolve_vuln(self, module_obj, depth, vuln_object, ver_restrictions=[], dep_restrictions=[]):			
+		
+		front = "\t   " * depth
+		
+		if self.__debug:
+			print(front + "V: Processing " + module_obj.get_class_name() + "." + vuln_object.name())
+			print(front + "------------------------------------------\n")
+		
+		dep_list = vuln_object.get_dependencies()
+		
+		if len(dep_list) > 0:
+
+			for dep in dep_list:
 				
 				if self.__debug:
-					print(front + "Processing " + module_obj.get_class_name() + "." + vuln.name())
+					print(front + "V: Dependency: ")
+					for item in dep.get_links():
+						print(front + "   " + str(item))
 
-				dep_list = vuln.get_dependencies()
-				if len(dep_list) == 0:
-					pass
-				else:
-					# For each dependency, look for modules that provide the necessary items
-					for dep in dep_list:
+				dep_done = False
+				# List for ORed vulnerabilities of provides strings that have failed
+				failed_ps_list = [] 
+				 
+				
+				# Loop until a valid module for the dependency is loaded
+				while dep_done == False:
+
+					
+					selected_dep_ps = None
+					selected_dep_range = None
+					
+					# Check if the dependency has mutiple matchable values (is OR)
+					if dep.is_or():
+
 						
-						# If the module loaded has the provides string, and the module has not yet been loaded, load it
-						if dep.provides_string() not in self.__provides_map:
-							dep_module = self.__load_provides(dep.provides_string())
+						dep_choice_list = dep.get_links()
+						
+						dep_valid_list = []
+						
+						# Remove from the running any provides strings that have failed
+						for dep_choice in dep_choice_list:
+							if not dep_choice[0] in failed_ps_list:
+								dep_valid_list.append(dep_choice)	
+						
+						# Check if the OR has failed on all counts, if so fail the vuln
+						if len(dep_valid_list) == 0:
+							return False
+						
+						# If so, check to see if any of the provides strings are already loaded, and use them if so
+						for dep_choice in dep_valid_list:
+							if dep_choice[0] in self.__provides_map:
+								selected_dep_ps = dep_choice.provides_string
+								selected_dep_range = dep_choice.version_range
+								
+						# If no existing values were found, then select a random one		
+						if selected_dep_ps == None:
+							choice_sel = ba_random().array_random(dep_valid_list)
+							selected_dep_ps = choice_sel.provides_string
+							selected_dep_range = choice_sel.version_range
+					# If not OR, just get the strings
+					else:
+						link = dep.get_links()[0]
+						selected_dep_ps = link.provides_string
+						selected_dep_range = link.version_range
+					
+					if self.__debug:
+						print(front + "V: Looking for a dependency that can provide: " + selected_dep_ps + " - " + str(selected_dep_range))
+					
+					# If no other module that provides the string, load a module that does
+					if selected_dep_ps not in self.__provides_map:
+						
+						provides_done = False
+						
+						# Modules that were tried to provide the necessary provides_string, but failed to resolve
+						failed_modules = []
+						
+						# Loop until we load a resolvable module that provides the given provides string
+						while provides_done == False:
 							
+							# Get a module to attempt to use
+							dep_module = self.__load_provides(selected_dep_ps, failed_modules)
+							
+							# Could not get a module that provides the dependency that works
 							if dep_module == None:
-								self.__add_faulting_module("PS:" +  dep.provides_string(), "Could not load module for " + dep.provides_string())
-								return False
-							
-							self.__add_parent(module_obj.get_class_name(), dep_module.get_class_name())
-							
-							
-							dep_module.add_version_restriction(dep.provides_string(), dep.version_range().get_string())
-							result = self.__resolve_module(dep_module, depth + 1, ver_restrictions + module_obj.get_dependency_restrictions())
-							dep_result = dep_result and result
-						else:
-							# A module with that provides string has been loaded and presumably processed. Use it
-							provides_module = self.__name_map[self.__provides_map[dep.provides_string()]]
-							
-							# Check if dependency is parent to the dependency's parent (circular dependence)
-							if self.__in_parent_path(module_obj.get_class_name() ,provides_module.get_class_name()):
-								self.__add_faulting_module(module_obj.get_class_name(), "Circular dependency detected")
-								return False
-							
-							# Check if the dependency module has already been processed
-							if provides_module.get_class_name() in self.__processed:
-								# If so, we need to check if we need to reprocess the tree
+								if dep.is_or():
+									failed_ps_list.append(selected_dep_ps)
+									provides_done = True
+								else:
+									self.__add_faulting_module("PS:" +  selected_dep_ps, "Could not load module for " + selected_dep_ps)
+									return False
+							else:
 								
+								if self.__debug:
+									print(front + "V: Loaded module " + dep_module.get_class_name() + " to provide " + selected_dep_ps)
 								
-								# First create list of dependency restrictions that are for this dependency
-								for dep_restriction in vuln.get_dependency_restrictions():
-									if dep_restriction.provides_string() == self.__provides_map[dep.provides_string()]:
-										provides_module._add_temp_dependency_restriction(dep_restriction)
+								self.__add_parent(module_obj.get_class_name(), dep_module.get_class_name())
+							
+								# Add the restriction given by the dependency definition
+								dep_module.add_version_restriction(selected_dep_ps, selected_dep_range)
 								
-								# Check if with the new restrictions the module doesn't need to be changed
-								if provides_module.still_valid():
-									# If so, convert the temp restictions into permanent ones
+								result = self.__resolve_module(dep_module, depth + 1, ver_restrictions + module_obj.get_dependency_restrictions())
+								
+								if result == True:
+									dep_done = True	
+									provides_done = True							
+								else:
+									if self.__debug:
+										print(front + "V: Module failed to resolve")
+									if not dep_module in failed_modules:
+										failed_modules.append(dep_module.get_class_name())
+									self.__remove_child_tree(dep_module.get_class_name())
+									dep_module._clear_restrictions()
+									
+					
+					else:
+
+						
+						dep_done = True
+						
+						# A module with that provides string has been loaded and presumably processed. Use it
+						provides_module = self.__name_map[self.__provides_map[selected_dep_ps]]
+						
+						# Check if dependency is parent to the dependency's parent (circular dependence)
+						if self.__in_parent_path(module_obj.get_class_name() ,provides_module.get_class_name()):
+							self.__add_faulting_module(module_obj.get_class_name(), "Circular dependency detected")
+							return False
+						
+						# Check if the dependency module has already been processed
+						if provides_module.get_class_name() in self.__processed:
+							# If so, we need to check if we need to reprocess the tree
+							
+							# First create list of dependency restrictions that are for this dependency
+							for dep_restriction in vuln.get_dependency_restrictions():
+								if dep_restriction.provides_string() == self.__provides_map[selected_dep_ps]:
+									provides_module._add_temp_dependency_restriction(dep_restriction)
+							
+							# Check if with the new restrictions the module doesn't need to be changed
+							if provides_module.still_valid():
+								# If so, convert the temp restictions into permanent ones
+								provides_module.commit_temp_dependency_restrictions()
+								# Clear the temp restrictions
+								provides_module.clear_temp_dependency_restrictions()
+							# If the vulnerabilities in the dependency are no longer possible, here's where things get interesting
+							else:
+								
+								# First check if the module has any child modules (already processed dependencies)
+								
+								if self.__has_children(provides_module.get_class_name()):
+									# If so, remove them
+									self.__remove_child_tree(provides_module.get_class_name())
+								
+								# Check if the module is a dependency for anything else, because the vulnerabilities that it provided are now invalid
+								if not self.__has_parents(provides_module.get_class_name()):
+									# If not, things are a lot simpler
+									
+			
+									# Add the current restrictions to the child module
 									provides_module.commit_temp_dependency_restrictions()
 									# Clear the temp restrictions
 									provides_module.clear_temp_dependency_restrictions()
-									dep_result = dep_result and True
-								# If the vulnerabilities in the dependency are no longer possible, here's where things get interesting
+									# Reprocess the child module
+									result = self.__resolve_module(provides_module, depth + 1)
+									if result == False:
+										return False
+
+									
 								else:
+									# If not, we must figure out how to get both parent modules to give valid restrictions if possible
+									# TODO: Change his algorithm to something better
+									pass
+									# Current Algorithm: Randomly select one of modules to set its current vulnerabilities and restrict them
+									# This still has possibility of leaving out valid combinations, and also not working at all
 									
-									# First check if the module has any child modules (already processed dependencies)
+									select_list = self.__parent_map[provides_module.get_class_name()] + [module_obj.get_class_name()]
 									
-									if self.__has_children(provides_module.get_class_name()):
-										# If so, remove them
-										self.__remove_child_tree(provides_module.get_class_name())
-									
-									# Check if the module is a dependency for anything else
-									if not self.__has_parents(provides_module.get_class_name()):
-										# If not, things are a lot simpler
-										
-				
-										# Add the current restrictions to the child module
-										provides_module.commit_temp_dependency_restrictions()
-										# Clear the temp restrictions
-										provides_module.clear_temp_dependency_restrictions()
-										# Reprocess the child module
-										result = self.__resolve_module(provides_module, depth + 1)
-										dep_result = dep_result and result
-										
-									else:
-										# If not, we must figure out how to get both parent modules to give valid restrictions if possible
-										# TODO: Change his algorithm to something better
-										pass
-										# Current Algorithm: Randomly select one of modules to set its current vulnerabilities and restrict them
-										# This still has possibility of leaving out valid combinations, and also not working at all
-										
-										select_list = self.__parent_map[provides_module.get_class_name()] + [module_obj.get_class_name()]
-										
-										selection = ba_random().array_random(select_list)
-										self.__name_map[selection].negate_selections()
-										self.__restarting = True
-										
-											
-							else:
-								self.__add_faulting_module(provides_module.get_class_name(), "Invalid state, if a module is set as provides, it should be processed")
-								return False
-								
-						resolve_result = self.__resolve_module(dep_module, depth + 1, ver_restrictions + module_obj.get_dependency_restrictions())
+									selection = ba_random().array_random(select_list)
+									self.__name_map[selection].negate_selections()
+									self.__restarting = True			
+						else:
+							error_message = "Invalid state, '" + selected_dep_ps +"' is set, but the module has not been resolved"
+							self.__add_faulting_module(provides_module.get_class_name(), error_message)
+							if self.__debug:
+								print(error_message)
+							return False
 			
-			self.__processed.append(module_obj.get_class_name())
-			return dep_result
+			
+			return True
+			
+		else:
+			return True	
+							
+				#~ resolve_result = self.__resolve_module(dep_module, depth + 1, ver_restrictions + module_obj.get_dependency_restrictions())
+
 	
 	# We must set a module to not done and any of its children
 	def __remove_child_tree(self, parent):
 		
+		#~ print("Removing " + parent)
+		
 		# Remove the parent from the completed modules list
-		self.__processed.remove(parent)
+		if parent in copy.deepcopy(self.__processed):
+			self.__processed.remove(parent)
 		
 		# Delete the module if it wasn't one that was set manually and it isn't a dependency for anything else
-		if not parent in self.__set_modules and not self.__has_parents(parent):
+		#~ if not parent in self.__set_modules and not self.__has_parents(parent):
+		if not parent in self.__set_modules:
 			self.__name_map[parent] = None
 		
+		for item in copy.deepcopy(self.__provides_map):
+			if self.__provides_map[item] == parent:
+				del self.__provides_map[item]
 		
 		# Remove child modules
 		temp_parent_map = copy.deepcopy(self.__parent_map)
@@ -355,20 +503,26 @@ class resolver(object):
 		
 	# Select a module that provides the given item and load it into the tree
 	# Also set the provides_string to module mapping
-	def __load_provides(self, provides_string):
-		
+	def __load_provides(self, provides_string, restriction_list):
+
 		choose_list = []
 		
 		for module in module_util.get_module_list():
+			
 			current_module = module_util.import_module(module)
-			if current_module.has_provides(provides_string):
+
+			if current_module.has_provides(provides_string) and current_module.get_class_name() not in restriction_list:
 				
 				# If the module we selected is already loaded (but not processed), use it
-				if current_module.get_class_name() in self.__name_map:
+				if current_module.get_class_name() in self.__name_map and self.__name_map[current_module.get_class_name()] != None:
 					self.__provides_map[provides_string] = current_module.get_class_name()
 					return self.__name_map[current_module.get_class_name()]
 				else:
 					choose_list.append(module)
+
+			
+		if choose_list == 0:
+			return None
 		
 		selected_module_name = ba_random().array_random(choose_list)
 		
@@ -377,15 +531,16 @@ class resolver(object):
 		if selected_module == None:
 			return None
 		
-		if self.__debug:
-			print("Loaded module " + selected_module.get_class_name() + " to provide " + provides_string)
+		
 		
 		# Set the provides mapping
 		self.__provides_map[provides_string] = selected_module.get_class_name()
 		
 		self.__insert_module(selected_module.get_class_name(), selected_module)
 		
+
 		return self.__name_map[selected_module.get_class_name()]
+	
 	
 	# Check if search is a parent or parent of parents. This would indicate a circular dependency
 	def __in_parent_path(self, start, search):
@@ -413,7 +568,7 @@ class resolver(object):
 	def __order_modules(self, module_list, level):
 		
 		if self.__debug:
-			front = "  " * level
+			front = "\t" * level
 		
 		module_map = {}
 		temp_list = []

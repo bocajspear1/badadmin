@@ -165,6 +165,8 @@ class version_range(object):
 		self.__version = None
 		self.__string = version_range_string
 		
+		
+		
 		if version_range_string == "*" or version_range_string == "-":
 			self.__range_direction = version_range_string
 			self.__version = None
@@ -175,7 +177,7 @@ class version_range(object):
 			self.__range_direction = version_range_string[:1]
 			self.__version = version(version_range_string[1:])
 		else:
-			raise ValueError("Invalid range")	
+			raise ValueError("Invalid range: " + version_range_string)	
 	
 	## Get the original string
 	#
@@ -258,7 +260,10 @@ class version_range(object):
 
 		
 		return other.extract_direction() == self.extract_direction() and other.extract_version() == self.extract_version()
-
+	
+	def __str__(self):
+		return "RANGE: " + self.__string 
+	
 ## @endcond
 		
 

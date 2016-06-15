@@ -29,8 +29,8 @@ def generate_modules(config):
 			
 			new_vuln = new_module.new_vulnerability(vuln['name'], vuln['desc'], vuln['provides'], vuln['version'])
 			
-			for dep in vuln['deps']:
-				new_vuln.add_dependency(dep['provides'], dep['range'])
+			if len(vuln['deps']) > 0:
+				new_vuln.add_dependency(vuln['deps'])
 								
 			new_module.add_vulnerability(new_vuln)
 		
@@ -56,7 +56,7 @@ def test_resolve_simple():
 	mod_1 = module_util.import_module("test_module")
 	
 	vuln1 = mod_1.new_vulnerability("VULN_1_A", "Test Vuln A", "A", "1.0.0")
-	vuln1.add_dependency("B", ">0.1")
+	vuln1.add_dependency(("B", ">0.1"))
 	mod_1.add_vulnerability(vuln1)
 	mod_1.override_class_name("mod_1")
 	mod_1.set_name("Mod_1")
@@ -138,7 +138,7 @@ def test_resolve_3_layer_2():
 				"provides": "B",
 				"version": "1.2.0",
 				"deps": [
-					{"provides": "C", "range": "<=10.1"}
+					("C","<=10.1")
 				]
 			}
 		]
@@ -186,6 +186,7 @@ def test_resolve_3_layer_2():
 	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
 	
 	remove_stubs()
+	
 
 def test_invalid():
 	
@@ -200,7 +201,7 @@ def test_invalid():
 				"provides": "A",
 				"version": "1.0.0",
 				"deps": [
-					{"provides": "Z", "range": ">2.0.0"}
+					("Z", ">2.0.0")
 				]
 			}
 		]
@@ -256,7 +257,7 @@ def test_invalid_2():
 				"provides": "A",
 				"version": "1.0.0",
 				"deps": [
-					{"provides": "B", "range": ">2.0.0"}
+					("B", ">2.0.0")
 				]
 			}
 		]
@@ -312,7 +313,7 @@ def test_resolve_3_layer_2():
 				"provides": "A",
 				"version": "1.0.0",
 				"deps": [
-					{"provides": "B", "range": ">0.1"}
+					("B", ">0.1")
 				]
 			},
 			{
@@ -321,7 +322,7 @@ def test_resolve_3_layer_2():
 				"provides": "",
 				"version": "",
 				"deps": [
-					{"provides": "B", "range": "=1.2.0"}
+					("B", "=1.2.0")
 				]
 			}
 		]
@@ -336,7 +337,7 @@ def test_resolve_3_layer_2():
 				"provides": "B",
 				"version": "1.2.0",
 				"deps": [
-					{"provides": "C", "range": "<=10.1"}
+					("C", "<=10.1")
 				]
 			}
 		]
@@ -381,4 +382,240 @@ def test_resolve_3_layer_2():
 
 	assert resolving.get_install_order() == ['mod_3','mod_2', 'mod_1']
 	assert len(resolving.get_install_modules(resolving.get_install_order())) == 3
+	remove_stubs()
+
+def test_resolve_simple_or():
+	
+	config = [
+	{
+		"print_name": "Mod_1",
+		"class_name": "mod_1",
+		"vulns": [
+			{
+				"name": "VULN_1_B",
+				"desc": "Test Vuln 1B",
+				"provides": "",
+				"version": "",
+				"deps": [
+					("B", "=1.2.0"),
+					("C", "=4.5.0")
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_2",
+		"class_name": "mod_2",
+		"vulns": [
+			{
+				"name": "VULN_2_A",
+				"desc": "Test Vuln 2A",
+				"provides": "B",
+				"version": "1.2.0",
+				"deps": [
+					
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_3",
+		"class_name": "mod_3",
+		"vulns": [
+			{
+				"name": "VULN_3_A",
+				"desc": "Test Vuln 3A",
+				"provides": "C",
+				"version": "4.5.0",
+				"deps": [
+					
+				]
+			}
+		]
+	}
+	]
+	
+	generate_modules(config)
+	
+	mod_list = module_util.get_module_list()
+	
+	assert "mod_1" in mod_list
+	assert "mod_2" in mod_list
+	assert "mod_3" in mod_list
+	
+	
+	
+	resolving = resolve.resolver()
+	resolving.add_module("mod_1")
+
+	assert resolving.start_resolve() == True
+
+	assert resolving.get_install_order() == ['mod_3', 'mod_1'] or resolving.get_install_order() == ['mod_2', 'mod_1']
+	assert len(resolving.get_install_modules(resolving.get_install_order())) == 2
+	
+	remove_stubs()
+
+def test_resolve_or():
+	
+	config = [
+	{
+		"print_name": "Mod_1",
+		"class_name": "mod_1",
+		"vulns": [
+			{
+				"name": "VULN_1_A",
+				"desc": "Test Vuln 1A",
+				"provides": "A",
+				"version": "1.0.0",
+				"deps": [
+					("B", "<0.2"),
+					("C", "<4.5.0")
+				]
+			},
+			{
+				"name": "VULN_1_B",
+				"desc": "Test Vuln 1B",
+				"provides": "",
+				"version": "",
+				"deps": [
+					("B", "=1.2.0"),
+					("C", "=4.5.0")
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_2",
+		"class_name": "mod_2",
+		"vulns": [
+			{
+				"name": "VULN_2_A",
+				"desc": "Test Vuln 2A",
+				"provides": "B",
+				"version": "1.2.0",
+				"deps": [
+					
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_3",
+		"class_name": "mod_3",
+		"vulns": [
+			{
+				"name": "VULN_3_A",
+				"desc": "Test Vuln 3A",
+				"provides": "C",
+				"version": "4.5.0",
+				"deps": [
+					
+				]
+			}
+		]
+	}
+	]
+	
+	generate_modules(config)
+	
+	mod_list = module_util.get_module_list()
+	
+	assert "mod_1" in mod_list
+	assert "mod_2" in mod_list
+	assert "mod_3" in mod_list
+	
+	list1 = ['mod_3', 'mod_1']
+	list2 = ['mod_2', 'mod_1']
+	list1_count = 0
+	list2_count = 0
+	
+	
+	for i in range(20):
+		
+	
+		#~ resolving = resolve.resolver(debug=True)
+		resolving = resolve.resolver()
+		resolving.add_module("mod_1")
+
+		assert resolving.start_resolve() == True
+		#~ print("\n\END DEBUG\n\n")
+		install_order = resolving.get_install_order()
+		assert  install_order == list1 or install_order == list2
+		if install_order == list1:
+			list1_count += 1
+		elif install_order == list2:
+			list2_count += 1
+			
+		assert len(resolving.get_install_modules(resolving.get_install_order())) == 2
+	
+	assert list1_count > 1
+	assert list2_count > 1
+	remove_stubs()
+
+
+
+def test_resolve_invalid_or():
+	
+	config = [
+	{
+		"print_name": "Mod_1",
+		"class_name": "mod_1",
+		"vulns": [
+			{
+				"name": "VULN_1_A",
+				"desc": "Test Vuln 1A",
+				"provides": "A",
+				"version": "1.0.0",
+				"deps": [
+					("B", ">9.0"),
+					("C", ">9.0")
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_2",
+		"class_name": "mod_2",
+		"vulns": [
+			{
+				"name": "VULN_2_A",
+				"desc": "Test Vuln 2A",
+				"provides": "B",
+				"version": "1.2.0",
+				"deps": [
+					
+				]
+			}
+		]
+	},
+	{
+		"print_name": "Mod_3",
+		"class_name": "mod_3",
+		"vulns": [
+			{
+				"name": "VULN_3_A",
+				"desc": "Test Vuln 3A",
+				"provides": "C",
+				"version": "9.1",
+				"deps": [
+					("Z", "=2.0")
+				]
+			}
+		]
+	}
+	]
+	
+	generate_modules(config)
+	
+	mod_list = module_util.get_module_list()
+	
+	assert "mod_1" in mod_list
+	assert "mod_2" in mod_list
+	assert "mod_3" in mod_list
+
+	resolving = resolve.resolver()
+	resolving.add_module("mod_1")
+
+	assert resolving.start_resolve() == False
+	
 	remove_stubs()

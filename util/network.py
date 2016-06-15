@@ -5,6 +5,7 @@
 import util.os_data as os_data
 import util.simple_command as simple_command
 import util.cross_version as cross_version
+import socket 
 
 import re
 
@@ -253,3 +254,23 @@ class networking(object):
 	#	
 	def get_interfaces(self):
 		return list(self.__interfaces.keys())
+
+	## Checks if a port is available on both IPv4 and IPv6
+	# Port must be available on both IPv6 and IPv4
+	#
+	# #param port (int) - Port to test
+	# @returns bool - True means port is available, False if not
+	#
+	def is_port_available(self, port):
+		
+		
+		try:
+			test_socket = socket.socket()
+			test_socket.bind(('', port))
+			
+			test_socket = socket.socket(socket.AF_INET6)
+			test_socket.bind(('', port))
+			print(port)
+			return True
+		except:
+			return False

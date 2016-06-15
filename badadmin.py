@@ -11,11 +11,12 @@ from util.ba_random import ba_random
 import os
 import sys
 import traceback
-
+## Name of the application
 NAME = "BadAdmin Framework"
+## Current version of the application
 VERSION = "0.4"
 
-
+## Valid commands for the interface
 VALID_COMMANDS = [
 		"exit",
 		"quit",
@@ -28,6 +29,7 @@ VALID_COMMANDS = [
 		"debug"
 	]
 
+## Stores help information for commands
 HELP_TOPICS = {
 	'exit': 'Exit BadAdmin',
 	'quit': 'Exit BadAdmin',
@@ -58,7 +60,7 @@ HELP_TOPICS = {
 	}
 }
 
-## @class badadmin
+## @class badadmin.badadmin
 # 
 # User interface class
 #
@@ -260,7 +262,7 @@ class badadmin():
 						print(tmp_module.info())
 						
 						print("Vulnerabilities:")
-						for vuln in tmp_module.vulnerability_list():
+						for vuln in tmp_module.full_vulnerability_list():
 							print("    " + vuln)
 							
 					else:
@@ -286,7 +288,7 @@ class badadmin():
 					vuln = options[1]
 					
 					if module_util.module_exists(module):
-						if vuln in module_util.import_module(module).vulnerability_list():
+						if vuln in module_util.import_module(module).full_vulnerability_list():
 							if not module in self.__vars['force']['value']:
 								self.__vars['force']['value'][module] = []
 							
@@ -310,7 +312,7 @@ class badadmin():
 					if module_util.module_exists(module):
 						module_obj = module_util.import_module(module)
 						
-						if vuln in module_obj.vulnerability_list():
+						if vuln in module_obj.full_vulnerability_list():
 							result = module_obj.test(vuln)
 							if result == False:
 								print("Test failed")

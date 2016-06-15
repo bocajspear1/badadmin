@@ -80,8 +80,8 @@ def get_module_list():
 # @param module_object (object) - Object (subclass of module_base) that will act as the module
 #
 def set_stub_module(module_name, module_object):
-	if module_exists(module_name):
-		print("Overridding " + module_name)
+	#~ if module_exists(module_name):
+		#~ print("Overridding " + module_name)
 	
 	if not issubclass(module_object.__class__, base.module_base):
 		raise ValueError("Stub module object must be a subclass of module_base")

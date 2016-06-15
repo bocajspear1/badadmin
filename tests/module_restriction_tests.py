@@ -61,12 +61,29 @@ def test_version_restriction_dep():
 	test_obj = module_util.import_module('test_module')
 	
 	vuln = test_obj.new_vulnerability("Restrict_Test_1", "Test", "restrict", "1.0.0")
-	vuln.add_dependency("test", ">2.0.0a")
+	vuln.add_dependency(("test", ">2.0.0a"))
 	test_obj.add_vulnerability(vuln)
 
 	assert len(test_obj.get_vulnerabilities()) == 1
 	
 	test_obj.add_dependency_restriction("test", ">2.0.0")
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 0
+
+def test_version_restriction_dep_or():
+	test_obj = module_util.import_module('test_module')
+	
+	vuln = test_obj.new_vulnerability("Restrict_Test_2", "Test", "restrict", "1.0.0")
+	vuln.add_dependency([("test2", ">2.0.0b"), ("test", ">2.0.0a")])
+	test_obj.add_vulnerability(vuln)
+
+	assert len(test_obj.get_vulnerabilities()) == 1
+	
+	test_obj.add_dependency_restriction("test", ">2.0.0")
+	
+	assert len(test_obj.get_vulnerabilities(force=True)) == 1
+	
+	test_obj.add_dependency_restriction("test2", ">2.0.0")
 	
 	assert len(test_obj.get_vulnerabilities(force=True)) == 0
 

@@ -1,4 +1,5 @@
 from util.network import networking
+from util.simple_command import simple_command
 import util.os_data as os_data
 
 def test_get_interfaces():
@@ -31,3 +32,42 @@ def test_get_addresses():
 		
 		assert value['ipv6']['address'] == "::1"
 		assert value['ipv6']['mask'] == "128"
+
+def test_available_ports():
+	test_obj = networking()
+	
+	port_list = []
+	
+	if os_data.os_info().matches(os_data.os_match('linux')):
+		code, output, error = simple_command().run('netstat -tunap | grep LISTEN')
+		
+		for line in output:
+			line_list = line.split(" ")
+			
+			new_line = []
+			
+			for item in line_list:
+				if item != "":
+					new_line.append(item)
+			
+			listen_section = new_line[3]
+			
+			listen_split = listen_section.split(":")
+			
+			port = listen_split[len(listen_split) - 1]
+			
+			port_list.append(int(port))
+	
+		for port in port_list:
+			assert test_obj.is_port_available(port) == False
+
+		i = 1
+		for j in range(5): 
+			while i in port_list and i <= 65535:
+				i += 5
+			
+			if i == 65535:
+				assert False
+			
+			assert test_obj.is_port_available(i) == True
+			i += 5
