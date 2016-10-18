@@ -19,3 +19,7 @@ Development is still in progress for both the application and documentation. Det
 If you are interested in this project and want to get involved, feel free to contact me at `jacob (-a-t-) j2h2.com`, and I will get back to you as soon as possible.
 
 Also, feel free to tell me of any ways to make the project more accessible, as the more modules, the more learning that can happen!
+
+# License
+
+BadAdmin is licensed under the GNU General Public License (GPL) v3.0
