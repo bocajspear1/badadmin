@@ -12,6 +12,11 @@ The Internet can provide numerous vulnerable virtual machines for computer secur
 
 BadAdmin hopes to fix these problems by allowing the generation of random vulnerabilities on a system each time BadAdmin is run, thus a more unique experience each time.
 
+## More info
+
+* [Website](http://badadmin.j2h2.com)
+* [Module Documentation](http://doc.j2h2.com/badadmin)
+
 ## Development
 
 Development is still in progress for both the application and documentation. Detailed design documents and class documentation is in the works.
